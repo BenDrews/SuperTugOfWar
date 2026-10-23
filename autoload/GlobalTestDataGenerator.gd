@@ -33,6 +33,7 @@ func generate_test_data() -> void:
 	add_test_artifacts()
 	add_test_card_decorators()
 	add_test_cards()
+	UnitCardFactory.add_test_unit_cards() # Super Tug of War unit cards; must be after characters, before card packs
 	
 	add_test_card_packs()
 	add_test_artifact_packs()

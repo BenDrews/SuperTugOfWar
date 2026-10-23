@@ -77,6 +77,10 @@ const ACTION_END_TURN: String = "res://scripts/actions/combatant_actions/player_
 const ACTION_CYCLE_ENEMY_INTENT: String = "res://scripts/actions/combatant_actions/enemy_actions/ActionCycleEnemyIntent.gd"
 const ACTION_SUMMON_ENEMIES: String = "res://scripts/actions/combatant_actions/enemy_actions/ActionSummonEnemies.gd"
 
+# unit actions
+const ACTION_SUMMON_UNIT: String = "res://scripts/actions/unit_actions/ActionSummonUnit.gd"
+const ACTION_DECAY_UNIT_STAMINA: String = "res://scripts/actions/unit_actions/ActionDecayUnitStamina.gd"
+
 # reward actions
 const ACTION_GRANT_REWARDS = "res://scripts/actions/rewards/ActionGrantRewards.gd"
 const ACTION_CLEAR_REWARDS = "res://scripts/actions/rewards/ActionClearRewards.gd"

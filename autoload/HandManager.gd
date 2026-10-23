@@ -44,6 +44,9 @@ const DISCARD_PILE: String = "DISCARD" # this does not trigger discard effects. 
 const MANUAL_DISCARD_PILE: String = "MANUAL_DISCARD" # triggers discard effects. Still goes to same place as discard via STANDARD_PILE_NAME_TO_PILE_PROPERTY_NAME
 const EXHAUST_PILE: String = "EXHAUST"
 const BANISH_PILE: String = "" # cards are completely removed from play when assigned here
+## Custom pile holding Unit cards whose Unit is currently on the battlefield. The card is moved to the
+## discard pile when its Unit runs out of stamina. Registered in _ready() via add_custom_pile().
+const UNIT_FIELD_PILE: String = "UNIT_FIELD"
 # magic strings for other "pile" selections in HandManager.get_pile()
 const DECK: String = "DECK"
 const COMBAT_DECK: String = "COMBAT_DECK"
@@ -101,6 +104,9 @@ func _ready() -> void:
 	Signals.combat_ended.connect(_on_combat_ended)
 	Signals.run_ended.connect(_on_run_ended)
 	Signals.player_killed.connect(_on_player_killed)
+	
+	# pile for unit cards currently on the battlefield. UnitContainer maps its UI element for card trails.
+	add_custom_pile(UNIT_FIELD_PILE)
 
 #region Pile Management
 
@@ -136,6 +142,9 @@ func move_card_to_limbo(card_data: CardData) -> void:
 	player_discard.erase(card_data)
 	player_exhaust.erase(card_data)
 	player_hand.erase(card_data)
+	# custom piles too, otherwise cards moved out of them (eg UNIT_FIELD_PILE -> discard) get duplicated
+	for pile_name: String in custom_piles:
+		custom_piles[pile_name].erase(card_data)
 	# unregister from Hand UI
 	hand.card_data_to_hand_card.erase(card_data)
 

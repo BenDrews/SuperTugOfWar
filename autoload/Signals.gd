@@ -125,6 +125,12 @@ signal enemy_clicked(enemy: Enemy)
 signal enemy_hovered(enemy: Enemy)
 signal enemy_spawn_requested(enemy_object_id: String, slot_id: int)	# requests spawning an enemy in a slot
 
+# units
+signal unit_spawn_requested(card_data: CardData, unit_name: String, unit_strength: int, unit_stamina: int)	# requests a Unit be placed on the battlefield. See ActionSummonUnit
+signal unit_spawned(unit: Unit)
+signal unit_stamina_changed(unit: Unit)
+signal unit_discarded(unit: Unit)	# unit left the battlefield; its card (if any) has been sent to the discard pile
+
 # artifacts
 signal artifact_proc(artifact_data: ArtifactData)	# an artifact's effect has been triggered
 signal artifact_counter_changed(artifact_data: ArtifactData)

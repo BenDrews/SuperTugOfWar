@@ -36,8 +36,16 @@ var parent_card: CardData = null	# the parent card in the player's true deck tha
 @export var card_shuffle_weighting: float = 1.0
 
 # Card Type
-enum CARD_TYPES {ATTACK, SKILL, POWER, STATUS, CURSE}
-const STANDARD_CARD_TYPES: Array[int] = [CARD_TYPES.ATTACK, CARD_TYPES.SKILL, CARD_TYPES.POWER]
+## NOTE: UNIT is appended at the end so existing serialized card_type ints stay valid.
+enum CARD_TYPES {ATTACK, SKILL, POWER, STATUS, CURSE, UNIT}
+const STANDARD_CARD_TYPES: Array[int] = [CARD_TYPES.ATTACK, CARD_TYPES.SKILL, CARD_TYPES.POWER, CARD_TYPES.UNIT]
+
+# Unit Cards
+## card_values keys holding a Unit card's inherent stats. Stored in card_values (rather than as
+## separate properties) so upgrades, decorators, interceptors and description previews all work
+## on them through the standard value hierarchy. See UnitCardFactory and ActionSummonUnit.
+const UNIT_STRENGTH_KEY: String = "unit_strength"
+const UNIT_STAMINA_KEY: String = "unit_stamina"
 @export var card_type: int = CARD_TYPES.ATTACK
 
 # Card Rarity
@@ -469,6 +477,20 @@ func is_card_decorator_applicable(card_decorator_id: String) -> bool:
 		return false
 	
 	return true
+#endregion
+
+#region Unit Cards
+## Returns if this card summons a Unit onto the battlefield when played.
+func is_unit_card() -> bool:
+	return card_type == CARD_TYPES.UNIT
+
+## The card's base (un-intercepted) Strength.
+func get_unit_strength() -> int:
+	return int(card_values.get(UNIT_STRENGTH_KEY, 0))
+
+## The card's base (un-intercepted) Stamina, i.e. how many turns its Unit stays on the field.
+func get_unit_stamina() -> int:
+	return int(card_values.get(UNIT_STAMINA_KEY, 0))
 #endregion
 
 #region Card Flag Getters

@@ -30,7 +30,13 @@ extends Control
 @onready var end_turn_button: Button = $EndTurnButton
 var end_turn_object: CombatEndTurn = null
 
+## Holds the Units on the battlefield. Created in code so Root.tscn doesn't need editing.
+var unit_container: UnitContainer = null
+const UNIT_CONTAINER_RECT: Rect2 = Rect2(16, 128, 536, 200) # free space above/left of the player
+
 func _ready():
+	_create_unit_container()
+	
 	Signals.player_money_changed.connect(_on_player_money_changed)
 	Signals.player_health_changed.connect(_on_player_health_changed)
 	
@@ -78,6 +84,15 @@ func _ready():
 	HandManager.card_destination_to_ui_elements[HandManager.DRAW_PILE] = draw_pile_button
 	HandManager.card_destination_to_ui_elements[HandManager.DISCARD_PILE] = discard_pile_button
 	HandManager.card_destination_to_ui_elements[HandManager.EXHAUST_PILE] = exhaust_pile_button
+
+func _create_unit_container() -> void:
+	unit_container = UnitContainer.new()
+	unit_container.name = "UnitContainer"
+	add_child(unit_container)
+	# draw above the combatants but below the hand, card picking and overlays
+	move_child(unit_container, enemy_container.get_index() + 1)
+	unit_container.position = UNIT_CONTAINER_RECT.position
+	unit_container.size = UNIT_CONTAINER_RECT.size
 
 func _on_map_location_selected(location_data: LocationData):
 	# determine what to do when the player visits a new location
@@ -467,6 +482,13 @@ func _on_player_turn_ended():
 	
 	# discard non retained cards and perform card actions
 	HandManager.perform_end_of_turn_hand_actions()
+	if ActionHandler.actions_being_performed:
+		await ActionHandler.actions_ended
+	if _end_combat_check():
+		return
+	
+	# units on the battlefield tire: lose stamina, and are discarded at 0
+	ActionGenerator.generate_end_of_turn_unit_actions()
 	if ActionHandler.actions_being_performed:
 		await ActionHandler.actions_ended
 	if _end_combat_check():

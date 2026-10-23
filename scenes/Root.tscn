@@ -240,13 +240,13 @@ NodePath("VBoxContainer/ProfileStatsButton"): NodePath("../ProfileStatsMenu")
 }
 
 [node name="Label" type="Label" parent="TitleScreen/MainMenu" unique_id=860604846]
-layout_direction = 2
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
 offset_top = 16.0
 offset_bottom = 67.0
 grow_horizontal = 2
+layout_direction = 2
 theme = ExtResource("2_bi5lp")
 text = "Slay the Robot"
 horizontal_alignment = 1
@@ -338,13 +338,13 @@ NodePath("StartRun/VBoxContainer/MainMenuButton"): NodePath("../MainMenu")
 }
 
 [node name="Label" type="Label" parent="TitleScreen/NewRunMenu" unique_id=2061026023]
-layout_direction = 2
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
 offset_top = 16.0
 offset_bottom = 67.0
 grow_horizontal = 2
+layout_direction = 2
 theme = ExtResource("2_bi5lp")
 text = "New Run"
 horizontal_alignment = 1
@@ -367,8 +367,8 @@ grow_vertical = 2
 
 [node name="CharacterNameLabel" type="Label" parent="TitleScreen/NewRunMenu/CharacterSelect/VBoxContainer" unique_id=1473832797]
 unique_name_in_owner = true
-layout_direction = 2
 layout_mode = 2
+layout_direction = 2
 theme = ExtResource("2_bi5lp")
 theme_override_font_sizes/font_size = 36
 text = "Character Name"
@@ -380,7 +380,6 @@ layout_mode = 2
 
 [node name="CharacterHealthLabel" type="Label" parent="TitleScreen/NewRunMenu/CharacterSelect/VBoxContainer/Control" unique_id=1228433366]
 unique_name_in_owner = true
-layout_direction = 2
 layout_mode = 1
 anchors_preset = -1
 anchor_top = 0.5
@@ -390,6 +389,7 @@ offset_top = -12.0
 offset_right = 160.0
 offset_bottom = 12.0
 grow_vertical = 2
+layout_direction = 2
 theme = ExtResource("2_bi5lp")
 theme_override_font_sizes/font_size = 17
 text = "HP: "
@@ -397,7 +397,6 @@ vertical_alignment = 1
 
 [node name="CharacterMoneyLabel" type="Label" parent="TitleScreen/NewRunMenu/CharacterSelect/VBoxContainer/Control" unique_id=948848595]
 unique_name_in_owner = true
-layout_direction = 2
 layout_mode = 1
 anchors_preset = -1
 anchor_top = 0.5
@@ -407,6 +406,7 @@ offset_top = -12.0
 offset_right = 323.0
 offset_bottom = 12.0
 grow_vertical = 2
+layout_direction = 2
 theme = ExtResource("2_bi5lp")
 theme_override_font_sizes/font_size = 17
 text = "Money:"
@@ -421,8 +421,8 @@ theme_override_constants/margin_bottom = 32
 [node name="CharacterDescriptionLabel" type="Label" parent="TitleScreen/NewRunMenu/CharacterSelect/VBoxContainer/MarginContainer" unique_id=1051847027]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 64)
-layout_direction = 2
 layout_mode = 2
+layout_direction = 2
 theme_override_font_sizes/font_size = 16
 text = "Character Description"
 autowrap_mode = 2
@@ -451,16 +451,16 @@ offset_bottom = 178.0
 
 [node name="CharacterArtifactNameLabel" type="Label" parent="TitleScreen/NewRunMenu/CharacterSelect/VBoxContainer/Control2/VBoxContainer" unique_id=1043437012]
 unique_name_in_owner = true
-layout_direction = 2
 layout_mode = 2
+layout_direction = 2
 theme_override_font_sizes/font_size = 16
 text = "Artifact Name"
 clip_text = true
 
 [node name="CharacterArtifactDescriptionLabel" type="Label" parent="TitleScreen/NewRunMenu/CharacterSelect/VBoxContainer/Control2/VBoxContainer" unique_id=1447978852]
 unique_name_in_owner = true
-layout_direction = 2
 layout_mode = 2
+layout_direction = 2
 theme_override_font_sizes/font_size = 16
 text = "Description "
 autowrap_mode = 2
@@ -496,7 +496,6 @@ layout_mode = 2
 
 [node name="SeedVisibilityToggle" type="Button" parent="TitleScreen/NewRunMenu/StartRun/VBoxContainer/SeedSelect" unique_id=2143920552]
 unique_name_in_owner = true
-layout_direction = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -504,6 +503,7 @@ anchor_bottom = 1.0
 offset_right = -352.0
 grow_horizontal = 2
 grow_vertical = 2
+layout_direction = 2
 theme = ExtResource("2_bi5lp")
 theme_override_font_sizes/font_size = 24
 toggle_mode = true
@@ -554,7 +554,6 @@ text = "<--"
 
 [node name="DifficultyLabel" type="Label" parent="TitleScreen/NewRunMenu/StartRun/VBoxContainer/DifficultySelect" unique_id=876493831]
 unique_name_in_owner = true
-layout_direction = 2
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -563,6 +562,7 @@ offset_left = -144.0
 offset_right = 144.0
 offset_bottom = 31.0
 grow_horizontal = 2
+layout_direction = 2
 theme_override_font_sizes/font_size = 16
 text = "Difficulty 0"
 horizontal_alignment = 1
@@ -619,8 +619,8 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Label" type="Label" parent="TitleScreen/NewRunMenu/CustomModifiers/VBoxContainer" unique_id=296747209]
-layout_direction = 2
 layout_mode = 2
+layout_direction = 2
 theme = ExtResource("2_bi5lp")
 theme_override_font_sizes/font_size = 32
 text = "Custom Modifiers"
