@@ -154,7 +154,7 @@ func update_incoming_damage_amount(recalculate_enemy_intent: bool = true) -> voi
 		if recalculate_enemy_intent:
 			enemy.update_enemy_intent()
 		
-		incoming_damage_amount += enemy.enemy_intent_attack_damage * enemy.enemy_intent_number_of_attacks
+		incoming_damage_amount += enemy.get_incoming_damage() # summed over every lane intent
 
 	incoming_damage_amount_text.text = str(incoming_damage_amount)
 	incoming_damage.visible = incoming_damage_amount > 0

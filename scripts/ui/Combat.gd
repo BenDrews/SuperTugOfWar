@@ -270,7 +270,6 @@ func perform_enemy_turn():
 	for e in enemies:
 		# get enemy standard attack data
 		var enemy: Enemy = e	# typecast iterator
-		var enemy_intent: EnemyIntentData = enemy.enemy_data.get_current_intent()
 		
 		### perform enemy start of turn statuses
 		if enemy.is_alive():
@@ -278,71 +277,25 @@ func perform_enemy_turn():
 			if ActionHandler.actions_being_performed:
 				await ActionHandler.actions_ended
 		
-		### perform intent
-		# NOTE: remember these go in reverse order on the stack
+		### perform intents: block resets once, then each lane's intent runs, top to bottom
 		if enemy.is_alive():
-			var enemy_actions_data: Array[Dictionary] = []
-			var intent_attack_damage: int = 0
-			var intent_number_of_attacks: int = 0
-			var intent_block: int = 0
-			var intent_audio_path: String = ""
-			var intent_attack_impact_animation_id: String = ""
-			if enemy_intent != null:
-				# add custom actions
-				enemy_actions_data.assign(enemy_intent.enemy_intent_custom_actions)
-				# get attack data
-				intent_attack_damage = enemy_intent.enemy_intent_attack_damage
-				intent_number_of_attacks = enemy_intent.enemy_intent_number_of_attacks
-				intent_block = enemy_intent.enemy_intent_block
-				intent_audio_path = enemy_intent.enemy_intent_audio_path
-				intent_attack_impact_animation_id = enemy_intent.enemy_intent_attack_impact_animation_id
-			
-			# add attacks
-			if intent_number_of_attacks > 0:
-				enemy_actions_data.append(
-				{
-				Scripts.ACTION_ATTACK_GENERATOR: 
-					{
-					"damage": intent_attack_damage,
-					"number_of_attacks": intent_number_of_attacks,
-					"impact_vfx_animation_id": intent_attack_impact_animation_id,
-					"time_delay": EnemyData.ENEMY_ATTACK_DELAY,
-					"audio_path": intent_audio_path
+			var reset_block_data: Array[Dictionary] = [{
+				Scripts.ACTION_RESET_BLOCK: {
+					"target_override": BaseAction.TARGET_OVERRIDES.PARENT,
+					"time_delay": 0.0
 					}
-				})
-			
-			# add block
-			if intent_block > 0:
-				enemy_actions_data.append(
-					{
-					Scripts.ACTION_BLOCK: {
-						"block": intent_block,
-						"target_override": BaseAction.TARGET_OVERRIDES.PARENT,
-						"time_delay": 0.0,
-						}
-					}
-			)
-			
-			# add reset block action
-			enemy_actions_data.append(
-			{
-			Scripts.ACTION_RESET_BLOCK:  {
-				"target_override": BaseAction.TARGET_OVERRIDES.PARENT,
-				"time_delay": 0.0
-				}
-			}
-			)
-			
-			# play intent sound if one exists and no attacks
-			if enemy_intent.enemy_intent_audio_path != "" and intent_number_of_attacks == 0:
-				ActionGenerator.generate_sound_action(enemy_intent.enemy_intent_audio_path, false)
-			
-			# perform them and wait
-			var enemy_attack_actions: Array = ActionGenerator.create_actions(enemy, null, [player], enemy_actions_data, null)
-			ActionHandler.add_actions(enemy_attack_actions)
+				}]
+			ActionHandler.add_actions(ActionGenerator.create_actions(enemy, null, [player], reset_block_data, null))
 			if ActionHandler.actions_being_performed:
 				await ActionHandler.actions_ended
-			
+		
+		for lane_index: int in Battlefield.LANE_COUNT:
+			if not enemy.is_alive():
+				break
+			var lane_intent: EnemyIntentData = enemy.enemy_data.get_current_lane_intent(lane_index)
+			if lane_intent == null:
+				continue
+			await _perform_enemy_lane_intent(enemy, lane_intent, lane_index)
 			# if player is dead stop
 			if _end_combat_check():
 				return
@@ -375,6 +328,53 @@ func perform_enemy_turn():
 
 
 	
+## Performs one of an enemy's lane intents: its custom actions (eg summoning a unit, which goes into
+## this lane unless the action names a lane), its attacks, and its block. Waits until finished.
+func _perform_enemy_lane_intent(enemy: Enemy, enemy_intent: EnemyIntentData, lane_index: int) -> void:
+	# NOTE: remember these go in reverse order on the stack
+	var enemy_actions_data: Array[Dictionary] = []
+	for custom_action: Dictionary in enemy_intent.enemy_intent_custom_actions:
+		var lane_custom_action: Dictionary = {}
+		for action_script_path: String in custom_action:
+			var action_values: Dictionary = custom_action[action_script_path].duplicate()
+			if not action_values.has("lane_index"):
+				action_values["lane_index"] = lane_index
+			lane_custom_action[action_script_path] = action_values
+		enemy_actions_data.append(lane_custom_action)
+	
+	# attacks
+	if enemy_intent.enemy_intent_number_of_attacks > 0:
+		enemy_actions_data.append({
+			Scripts.ACTION_ATTACK_GENERATOR: {
+				"damage": enemy_intent.enemy_intent_attack_damage,
+				"number_of_attacks": enemy_intent.enemy_intent_number_of_attacks,
+				"impact_vfx_animation_id": enemy_intent.enemy_intent_attack_impact_animation_id,
+				"time_delay": EnemyData.ENEMY_ATTACK_DELAY,
+				"audio_path": enemy_intent.enemy_intent_audio_path,
+				"lane_index": lane_index,
+				}
+			})
+	
+	# block
+	if enemy_intent.enemy_intent_block > 0:
+		enemy_actions_data.append({
+			Scripts.ACTION_BLOCK: {
+				"block": enemy_intent.enemy_intent_block,
+				"target_override": BaseAction.TARGET_OVERRIDES.PARENT,
+				"time_delay": 0.0,
+				}
+			})
+	
+	# play intent sound if one exists and no attacks
+	if enemy_intent.enemy_intent_audio_path != "" and enemy_intent.enemy_intent_number_of_attacks == 0:
+		ActionGenerator.generate_sound_action(enemy_intent.enemy_intent_audio_path, false)
+	
+	Signals.enemy_lane_intent_performed.emit(enemy, lane_index)
+	var enemy_actions: Array[BaseAction] = ActionGenerator.create_actions(enemy, null, [player], enemy_actions_data, null)
+	ActionHandler.add_actions(enemy_actions)
+	if ActionHandler.actions_being_performed:
+		await ActionHandler.actions_ended
+
 func _on_player_turn_started():
 	# prevent player from playing cards manually
 	HandManager.set_disable_hand(true)

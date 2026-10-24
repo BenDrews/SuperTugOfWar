@@ -31,6 +31,11 @@ var unit_stamina_max: int = 0
 var lane: UnitLane = null
 ## Set once the unit starts leaving the field, so it is never processed twice.
 var is_discarded: bool = false
+## A faded stand-in shown while hovering an enemy intent that will summon this unit. Not a real
+## unit: not in UNITS_GROUP, not in any lane's ordering, never pulls.
+var is_preview: bool = false
+
+const PREVIEW_ALPHA: float = 0.45
 
 var _name_label: Label = null
 var _strength_label: Label = null
@@ -69,6 +74,20 @@ func get_lane_position() -> int:
 	if lane == null:
 		return -1
 	return lane.get_side_units(unit_owner).find(self)
+
+## Sets up a preview (ghost) unit. See is_preview.
+func init_preview(_unit_name: String, _unit_strength: int, _unit_stamina: int, _unit_owner: int = UNIT_OWNERS.ENEMY) -> void:
+	is_preview = true
+	unit_name = _unit_name
+	unit_owner = _unit_owner
+	unit_strength = _unit_strength
+	unit_stamina = _unit_stamina
+	unit_stamina_max = _unit_stamina
+	_build_visuals()
+	update_unit_display()
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	modulate.a = 0.0
+	create_tween().tween_property(self, "modulate:a", PREVIEW_ALPHA, FADE_TIME / 2)
 
 #region Stats
 ## Changes stamina by a delta. Does not discard the unit by itself; see ActionDecayUnitStamina
