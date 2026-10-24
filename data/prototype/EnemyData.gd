@@ -61,6 +61,18 @@ static var MISSING_INTENT: EnemyIntentData = EnemyIntentData.new("INTENT_DUMMY",
 	# "intent_attack": EnemyIntentData.new("intent_attack", 0 ...)
 	# "intent_attack": EnemyIntentData.new("intent_attack", 3 ...) # you can use intent overriding to swap intent_low_difficulty_attack for intent_high_difficulty_attack at difficulty 3
 }
+## Super Tug of War: enemies have one intent per lane instead of a single overhead intent.
+## Each lane walks the same enemy_intents graph independently, starting from its own initial intent
+## (a dummy whose weights pick the lane's first real intent, like INTENT_INITIAL).
+## Index = lane index. "" means the lane never has an intent.
+## If left empty (enemies written before lanes), the classic INTENT_INITIAL walk runs in
+## LEGACY_INTENT_LANE and the other lanes stay empty. See add_lane_intents().
+@export var enemy_lane_initial_intent_ids: Array[String] = []
+## Lane used by enemies that only define the classic single intent graph.
+const LEGACY_INTENT_LANE: int = 1
+
+## Current intent id for each lane. Built from enemy_lane_initial_intent_ids on first use.
+var enemy_lane_intent_current_ids: Array[String] = []
 #endregion
 
 #region Difficulty
@@ -138,7 +150,59 @@ func cycle_next_intent_state() -> void:
 	weights.assign(current_intent_state.enemy_intent_next_intent_weights)
 	enemy_intent_current_id = Random.get_weighted_selection(rng_enemy_attack_patterns, weights)
 
+#region Lane Intents
+## The starting (dummy) intent id for every lane, applying the legacy fallback.
+func get_lane_initial_intent_ids() -> Array[String]:
+	var initial_ids: Array[String] = []
+	for lane_index: int in Battlefield.LANE_COUNT:
+		if len(enemy_lane_initial_intent_ids) > 0:
+			initial_ids.append(enemy_lane_initial_intent_ids[lane_index] if lane_index < len(enemy_lane_initial_intent_ids) else "")
+		else:
+			initial_ids.append(EnemyIntentData.INTENT_INITIAL if lane_index == LEGACY_INTENT_LANE else "")
+	return initial_ids
+
+func _ensure_lane_intents() -> void:
+	if len(enemy_lane_intent_current_ids) != Battlefield.LANE_COUNT:
+		enemy_lane_intent_current_ids = get_lane_initial_intent_ids()
+
+## Moves every lane to its next intent. Called at the start of each player turn (turn 1 moves off
+## the initial dummies onto real intents).
+func cycle_lane_intents() -> void:
+	_ensure_lane_intents()
+	var rng_enemy_attack_patterns: RandomNumberGenerator = Global.player_data.get_player_rng("rng_enemy_attack_patterns")
+	for lane_index: int in Battlefield.LANE_COUNT:
+		var current_id: String = enemy_lane_intent_current_ids[lane_index]
+		if current_id == "":
+			continue # lane has no intents
+		var current_intent: EnemyIntentData = _get_intent_by_id(current_id)
+		if current_intent == null or len(current_intent.enemy_intent_next_intent_weights) == 0:
+			DebugLogger.log_warning("EnemyData: No next intent weights for lane {0} intent {1}".format([lane_index, current_id]))
+			continue
+		var weights: Dictionary[Variant, int] = {}
+		weights.assign(current_intent.enemy_intent_next_intent_weights)
+		enemy_lane_intent_current_ids[lane_index] = Random.get_weighted_selection(rng_enemy_attack_patterns, weights)
+
+## This lane's current intent (after difficulty overriding), or null if the lane has none.
+func get_current_lane_intent(lane_index: int) -> EnemyIntentData:
+	_ensure_lane_intents()
+	if lane_index < 0 or lane_index >= len(enemy_lane_intent_current_ids):
+		return null
+	var current_id: String = enemy_lane_intent_current_ids[lane_index]
+	if current_id == "":
+		return null
+	return _get_intent_by_id(current_id)
+
+func _get_intent_by_id(intent_id: String) -> EnemyIntentData:
+	var intent: EnemyIntentData = enemy_intents.get(_get_overridden_intent_id(intent_id), null)
+	if intent == null:
+		intent = enemy_intents.get(intent_id, null)
+	if intent == null:
+		DebugLogger.log_error("EnemyData: No intent defined for {0}".format([intent_id]))
+	return intent
+#endregion
+
 ## Gets the enemy's current attack intent, after being overridden.
+## NOTE: Super Tug of War uses lane intents instead; see get_current_lane_intent().
 func get_current_intent() -> EnemyIntentData:
 	var overridden_intent_id: String = _get_overridden_intent_id(enemy_intent_current_id)
 	var current_intent_state: EnemyIntentData = enemy_intents.get(overridden_intent_id, null)
@@ -174,6 +238,21 @@ func _get_overridden_intent_id(original_intent_id: String) -> String:
 func add_intent_state(_enemy_intents: Array[EnemyIntentData]) -> void:
 	for enemy_intent: EnemyIntentData in _enemy_intents:
 		enemy_intents[enemy_intent.object_id] = enemy_intent
+
+## Data generation helper for lane intents. Takes one weights dictionary per lane (the weighted
+## choice of that lane's first intent) and creates the per-lane initial dummy intents.
+## Pass an empty dictionary for a lane that should never have an intent.
+func add_lane_intents(lane_first_intent_weights: Array[Dictionary]) -> void:
+	enemy_lane_initial_intent_ids.clear()
+	for lane_index: int in len(lane_first_intent_weights):
+		var weights: Dictionary[String, int] = {}
+		weights.assign(lane_first_intent_weights[lane_index])
+		if len(weights) == 0:
+			enemy_lane_initial_intent_ids.append("")
+			continue
+		var initial_id: String = "{0}_lane_{1}".format([EnemyIntentData.INTENT_INITIAL, lane_index])
+		add_intent_state([EnemyIntentData.new(initial_id, 0, 0, 0, "", 0, "", weights)])
+		enemy_lane_initial_intent_ids.append(initial_id)
 
 ## Helper method. Makes setting health into a one liner during data generation code for enemy prototypes.
 ## If difficulty_level is not 0, it will instead update the difficulty modifiers for health

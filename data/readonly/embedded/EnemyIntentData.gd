@@ -175,6 +175,16 @@ func get_intent_codex_bbcode() -> String:
 					
 					returned_bbcode += ", ".join(summoning_texts)
 					
+				# tug of war units
+				Scripts.ACTION_SUMMON_UNIT, Scripts.ACTION_PLACE_UNIT:
+					if returned_bbcode.length() > 0:
+						returned_bbcode += "\n"
+					returned_bbcode += "Place unit: {0} ({1}/{2})".format([
+						action_data.get("unit_name", "Unit"),
+						action_data.get(CardData.UNIT_STRENGTH_KEY, 0),
+						action_data.get(CardData.UNIT_STAMINA_KEY, 1),
+						])
+				
 				# statuses
 				Scripts.ACTION_APPLY_STATUS:
 					# get status parameters

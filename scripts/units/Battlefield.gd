@@ -1,6 +1,7 @@
 ## The tug of war battlefield: LANE_COUNT lanes stacked vertically between the player and the enemies.
 ## Created by Combat in code. Spawns units into lanes on Signals.unit_spawn_requested, runs lane
-## picks requested by ActionBasePickLanes, and clears everything when combat or the run ends.
+## picks requested by ActionBasePickLanes, shows each enemy's per-lane intents at the right end of
+## the lanes, and clears everything when combat or the run ends.
 ## Static helpers let actions query lanes and units without a node reference.
 extends Control
 class_name Battlefield
@@ -17,6 +18,7 @@ var lanes: Array[UnitLane] = []
 ## The lane pick in progress, if any.
 var _current_lane_pick: ActionBasePickLanes = null
 var _pick_prompt_label: Label = null
+var _intent_refresh_queued: bool = false
 
 func _ready() -> void:
 	instance = self
@@ -58,6 +60,9 @@ func _ready() -> void:
 	Signals.unit_strength_changed.connect(_on_unit_changed)
 	Signals.tug_of_war_resolved.connect(_on_tug_of_war_resolved)
 	Signals.lane_pick_requested.connect(_on_lane_pick_requested)
+	Signals.enemy_intent_changed.connect(queue_intent_refresh)
+	Signals.enemy_killed.connect(func(_enemy: Enemy): queue_intent_refresh())
+	Signals.enemy_lane_intent_performed.connect(_on_enemy_lane_intent_performed)
 	Signals.combat_started.connect(_on_combat_started)
 	Signals.combat_ended.connect(_on_combat_ended)
 	Signals.run_ended.connect(_on_run_ended)
@@ -87,6 +92,41 @@ unit_owner: int = Unit.UNIT_OWNERS.PLAYER, lane_index: int = 0, lane_position: i
 func clear_units() -> void:
 	for lane: UnitLane in lanes:
 		lane.clear_units()
+#endregion
+
+#region Enemy Intents
+## Rebuilds the lane intent displays at the end of this frame (batches multiple change signals).
+func queue_intent_refresh() -> void:
+	if _intent_refresh_queued:
+		return
+	_intent_refresh_queued = true
+	refresh_lane_intents.call_deferred()
+
+## Shows every living enemy's current intent for each lane in that lane's intent slot.
+func refresh_lane_intents() -> void:
+	_intent_refresh_queued = false
+	for lane: UnitLane in lanes:
+		var displays: Array[LaneIntentDisplay] = []
+		for enemy: Enemy in Global.get_alive_enemies():
+			var lane_intent: EnemyIntentData = enemy.enemy_data.get_current_lane_intent(lane.lane_index)
+			if lane_intent == null:
+				continue
+			var display: LaneIntentDisplay = LaneIntentDisplay.new()
+			display.init(enemy, lane_intent, lane.lane_index)
+			displays.append(display)
+		lane.set_lane_intents(displays)
+
+func _clear_lane_intents() -> void:
+	for lane: UnitLane in lanes:
+		lane.set_lane_intents([])
+
+func _on_enemy_lane_intent_performed(enemy: Enemy, lane_index: int) -> void:
+	var lane: UnitLane = get_lane(lane_index)
+	if lane == null:
+		return
+	for display: LaneIntentDisplay in lane.get_lane_intents():
+		if display.enemy == enemy:
+			display.flash()
 #endregion
 
 #region Static Helpers
@@ -187,8 +227,10 @@ func _on_combat_started(_event_id: String) -> void:
 func _on_combat_ended() -> void:
 	_end_lane_pick()
 	clear_units()
+	_clear_lane_intents()
 
 func _on_run_ended() -> void:
 	_end_lane_pick()
 	clear_units()
+	_clear_lane_intents()
 #endregion

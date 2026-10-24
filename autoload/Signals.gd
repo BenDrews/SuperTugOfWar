@@ -119,6 +119,7 @@ signal energy_changed	# when the player gains energy not at start of turn
 
 # enemies
 signal enemy_intent_changed
+signal enemy_lane_intent_performed(enemy: Enemy, lane_index: int)	# an enemy's intent for a lane is being performed this enemy turn
 signal enemy_killed(enemy: Enemy)
 signal enemy_death_animation_finished(enemy: Enemy)
 signal enemy_clicked(enemy: Enemy)

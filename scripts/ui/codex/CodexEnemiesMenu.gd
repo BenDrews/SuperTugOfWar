@@ -85,7 +85,7 @@ func populate_codex_enemy_intents(enemy_data: EnemyData) -> void:
 	clear_codex_enemy_intents()
 	
 	for intent_id: String in enemy_data.enemy_intents:
-		if intent_id == EnemyIntentData.INTENT_INITIAL:
+		if intent_id.begins_with(EnemyIntentData.INTENT_INITIAL): # includes per-lane initial dummies
 			continue # ignore the initial intent
 		var enemy_intent_data: EnemyIntentData = enemy_data.enemy_intents[intent_id]
 		

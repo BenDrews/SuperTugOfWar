@@ -1,6 +1,7 @@
 ## Test enemies that put Units on the battlefield, so the tug of war has two sides.
-## Enemies summon units through intent custom actions using ActionSummonUnit; the summoned unit
-## automatically belongs to the enemy side because the action's parent is an Enemy.
+## Enemies have one intent per lane (EnemyData.add_lane_intents()). An intent that summons a unit uses
+## ActionSummonUnit as a custom action; the unit goes into the intent's lane and belongs to the enemy
+## side because the action's parent is an Enemy.
 extends RefCounted
 class_name UnitEnemyFactory
 
@@ -28,13 +29,9 @@ static func add_test_unit_enemies() -> void:
 	enemy_tug_rival.add_health_bounds(38, 42, DIFFICULTY_STANDARD_ENEMIES_HARDER)
 	enemy_tug_rival.enemy_texture_path = "external/sprites/enemies/enemy_yellow_medium.png"
 
-	var next_intent_weights: Dictionary[String, int] = {"intent_summon_grunt": 2, "intent_summon_hulk": 1, "intent_attack": 1}
-
-	# opens by fielding a grunt
-	enemy_tug_rival.add_intent_state([
-		EnemyIntentData.new(EnemyIntentData.INTENT_INITIAL, DIFFICULTY_STARTING, 0, 0, "", 0, "", {"intent_summon_grunt": 1}),
-		])
+	# one intent per lane each turn, each lane walking this graph on its own.
 	# NOTE: 0 attacks is required for non-attacking intents, otherwise an attack is inferred
+	var next_intent_weights: Dictionary[String, int] = {"intent_summon_grunt": 3, "intent_summon_hulk": 1, "intent_attack": 1, "intent_guard": 1, "intent_rest": 2}
 	enemy_tug_rival.add_intent_state([
 		EnemyIntentData.new("intent_summon_grunt", DIFFICULTY_STARTING, 0, 0, "", 0, "", next_intent_weights,
 			summon_unit_actions("Grunt", 3, 2)),
@@ -48,7 +45,19 @@ static func add_test_unit_enemies() -> void:
 	enemy_tug_rival.add_intent_state([
 		EnemyIntentData.new("intent_attack", DIFFICULTY_STARTING, 5, 1, "animation_vfx_impact_default", 0, "", next_intent_weights),
 		])
-
+	enemy_tug_rival.add_intent_state([
+		EnemyIntentData.new("intent_guard", DIFFICULTY_STARTING, 0, 0, "", 6, "", next_intent_weights),
+		])
+	enemy_tug_rival.add_intent_state([
+		EnemyIntentData.new("intent_rest", DIFFICULTY_STARTING, 0, 0, "", 0, "", next_intent_weights),
+		])
+	# how each lane opens: the top and bottom lanes field units, the middle lane varies
+	enemy_tug_rival.add_lane_intents([
+		{"intent_summon_grunt": 1},
+		{"intent_attack": 1, "intent_guard": 1, "intent_rest": 1},
+		{"intent_summon_grunt": 1, "intent_summon_hulk": 1},
+		])
+	
 	var _enemy_tug_rival_anim: AnimationData = enemy_tug_rival.add_standard_animations(
 		["external/sprites/enemies/enemy_yellow_medium.png"]
 	)

@@ -29,6 +29,8 @@ var enemy_slot: int = 0 # the spawn slot the enemy is in
 
 var enemy_intent_attack_damage: int = 0
 var enemy_intent_number_of_attacks: int = 0
+## Intercepted (damage, number of attacks) for each lane's current intent. See update_enemy_intent().
+var lane_intent_attack_previews: Array[Vector2i] = []
 
 func init(_enemy_data: EnemyData):
 	enemy_data = _enemy_data
@@ -152,87 +154,74 @@ func get_combatant_health_max() -> int:
 
 #endregion
 
-## Changes the enemy's intent to the next intent in the random walk.
+## Changes each of the enemy's lane intents to the next intent in their random walks.
 func cycle_enemy_intent():
-	enemy_data.cycle_next_intent_state()
+	enemy_data.cycle_lane_intents()
 	update_enemy_intent()
 	Signals.enemy_intent_changed.emit()
 
-## Displays the enemy's intentions above them based on their current intent.
+## Super Tug of War: intents are shown per lane by the Battlefield (LaneIntentDisplay), so the
+## overhead intent is hidden. This recalculates the intercepted attack previews for every lane,
+## which the lane displays, the player's incoming damage and is_attacking() use.
 func update_enemy_intent():
-	# get current intent's attack
-	var current_enemy_intent: EnemyIntentData = enemy_data.get_current_intent()
-	var attack_damage: int = 0
-	var number_of_attacks: int = 0
-	if current_enemy_intent == null:
-		breakpoint
-	else:
-		attack_damage = current_enemy_intent.enemy_intent_attack_damage
-		number_of_attacks = current_enemy_intent.enemy_intent_number_of_attacks
+	enemy_intent.visible = false
 	
-	# reset intent icon visibility
-	for intent_icon: TextureRect in INTENT_DISPLAY_TYPE_TO_INTENT.values():
-		intent_icon.hide()
-	
-	# show intent icons based on intent
-	for display_intent_type: int in current_enemy_intent.enemy_intent_display_types:
-		var intent_icon: TextureRect = INTENT_DISPLAY_TYPE_TO_INTENT.get(display_intent_type, null)
-		if intent_icon == null:
-			breakpoint
-			DebugLogger.log_error("Enemey: No intent icon mapped to EnemyIntentData.INTENT_DISPLAY_TYPES of value {0}".format([display_intent_type]))
-			continue
-		else:
-			intent_icon.show()
-	
+	lane_intent_attack_previews.clear()
+	enemy_intent_attack_damage = 0
+	enemy_intent_number_of_attacks = 0
+	for lane_index: int in Battlefield.LANE_COUNT:
+		var preview: Vector2i = get_intent_attack_preview(enemy_data.get_current_lane_intent(lane_index))
+		lane_intent_attack_previews.append(preview)
+		if preview.x * preview.y > 0:
+			# legacy fields: the biggest single attack, and the total number of hits across lanes
+			enemy_intent_attack_damage = max(enemy_intent_attack_damage, preview.x)
+			enemy_intent_number_of_attacks += preview.y
+
+## Intercepted (damage per hit, number of hits) an intent would deal to the player, as shown to them.
+func get_intent_attack_preview(intent: EnemyIntentData) -> Vector2i:
+	if intent == null:
+		return Vector2i.ZERO
 	var player: Player = Global.get_player()
+	var attack_damage: int = intent.enemy_intent_attack_damage
+	var number_of_attacks: int = intent.enemy_intent_number_of_attacks
 	
-	### damage
-	# intercept an attack action in preview mode
+	# damage: intercept an attack action in preview mode
 	var action_data: Array[Dictionary] = [{
-			Scripts.ACTION_ATTACK: 
-				{
-				"damage": attack_damage,
-				"target_override": BaseAction.TARGET_OVERRIDES.PLAYER
-				}}]
+		Scripts.ACTION_ATTACK: {
+			"damage": attack_damage,
+			"target_override": BaseAction.TARGET_OVERRIDES.PLAYER
+			}}]
 	var generated_action: BaseAction = ActionGenerator.create_actions(self, null, [player], action_data, null)[0]
 	var action_interceptor_processors: Array[ActionInterceptorProcessor] = generated_action._intercept_action([player], true)
-	
 	if len(action_interceptor_processors) == 1:
-		var action_interceptor_processor: ActionInterceptorProcessor = action_interceptor_processors[0]
-		# get intercepted attack values
-		enemy_intent_attack_damage = max(0, action_interceptor_processor.get_shadowed_action_values("damage", 0))
-
+		attack_damage = max(0, action_interceptor_processors[0].get_shadowed_action_values("damage", 0))
 	
-	### number of attacks
-	# intercept an attack action generator in preview mode
+	# number of attacks: intercept an attack generator in preview mode
 	action_data = [{
-		Scripts.ACTION_ATTACK_GENERATOR: 
-			{
-			"damage": attack_damage,
+		Scripts.ACTION_ATTACK_GENERATOR: {
+			"damage": intent.enemy_intent_attack_damage,
 			"number_of_attacks": number_of_attacks,
 			"target_override": BaseAction.TARGET_OVERRIDES.PLAYER
 			}}]
 	generated_action = ActionGenerator.create_actions(self, null, [player], action_data, null)[0]
 	action_interceptor_processors = generated_action._intercept_action([player], true)
-	
 	if len(action_interceptor_processors) == 1:
-		var action_interceptor_processor: ActionInterceptorProcessor = action_interceptor_processors[0]
-		# get intercepted attack values
-		enemy_intent_number_of_attacks = max(0, action_interceptor_processor.get_shadowed_action_values("number_of_attacks", 0))
+		number_of_attacks = max(0, action_interceptor_processors[0].get_shadowed_action_values("number_of_attacks", 0))
 	
-	### Display intent
-	enemy_intent_amount_label.visible = false
-	if enemy_intent_attack_damage * enemy_intent_number_of_attacks > 0:
-		enemy_intent_amount_label.visible = true
-		enemy_intent_amount_label.text = str(enemy_intent_attack_damage)
-		if enemy_intent_number_of_attacks > 1:
-			enemy_intent_amount_label.text += " x " + str(enemy_intent_number_of_attacks)
+	return Vector2i(attack_damage, number_of_attacks)
+
+## Total intercepted damage this enemy's lane intents will deal to the player this turn.
+func get_incoming_damage() -> int:
+	var total: int = 0
+	for preview: Vector2i in lane_intent_attack_previews:
+		total += preview.x * preview.y
+	return total
 
 func is_alive() -> bool:
 	return enemy_data.enemy_health > 0
 
 func is_attacking() -> bool:
-	return enemy_intent_number_of_attacks > 0
+	return get_incoming_damage() > 0
 
 func _on_combat_started(_event_id: String):
 	pass
