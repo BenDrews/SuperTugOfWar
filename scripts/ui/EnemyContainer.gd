@@ -1,14 +1,21 @@
 ## Handles containing enemies and spawning them
 ## Can handle both automatic placement and slot based placement for
 ## enemies based on EventData.event_enemy_placement_is_automatic positioning type.
+## Super Tug of War: enemies stand in a column on the right of the lanes. When they don't fit at full
+## size, the whole column is scaled down to fit (see _fit_enemies()).
 extends Control
 
-@onready var automatic_enemy_container: HBoxContainer = $AutomaticEnemyContainer
+@onready var automatic_enemy_container: BoxContainer = $AutomaticEnemyContainer
 @onready var positional_enemy_container: Control = $PositionalEnemyContainer
+
+## Vertical space each enemy needs, including intent icons above and statuses below.
+const ENEMY_SLOT_HEIGHT: float = 250.0
 
 func _ready():
 	Signals.run_ended.connect(_on_run_ended)
 	Signals.enemy_spawn_requested.connect(_on_enemy_spawn_requested)
+	automatic_enemy_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	automatic_enemy_container.add_theme_constant_override("separation", 0)
 
 func populate_enemies_from_event(event_data: EventData = Global.get_player_event_data()):
 	# populates initial enemies from an event
@@ -50,6 +57,8 @@ func populate_enemies_from_event(event_data: EventData = Global.get_player_event
 			var _enemy: Enemy = spawn_enemy_at_slot(enemy_object_id, enemy_counter)
 		
 		enemy_counter += 1
+	
+	_fit_enemies()
 
 ## Helper function for spawning enemies. Supplied a container for either automatic placement or
 ## positional placement depending on the event.
@@ -63,6 +72,9 @@ func _spawn_enemy(enemy_object_id: String, container: Control = automatic_enemy_
 	
 	container.add_child(enemy)
 	enemy.init(enemy_data)
+	# stack enemies in a centered column, each with room for intents and statuses
+	enemy.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	enemy.custom_minimum_size.y = ENEMY_SLOT_HEIGHT
 	
 	return enemy
 
@@ -81,6 +93,34 @@ func spawn_enemy_at_slot(enemy_object_id: String, slot_id: int) -> Enemy:
 	
 	return enemy
 
+## Scales the enemy column so every enemy fits in this container's rect, never scaling above 1.
+func _fit_enemies() -> void:
+	# automatic placement: n stacked slots
+	var automatic_enemy_count: int = 0
+	for child: Node in automatic_enemy_container.get_children():
+		if not child.is_queued_for_deletion():
+			automatic_enemy_count += 1
+	var automatic_scale: float = 1.0
+	if automatic_enemy_count > 0:
+		automatic_scale = min(1.0, size.y / (automatic_enemy_count * ENEMY_SLOT_HEIGHT))
+	_apply_fit_scale(automatic_enemy_container, automatic_scale)
+	
+	# positional placement: fit the lowest/rightmost slot
+	var content_size: Vector2 = Vector2.ZERO
+	for child: Node in positional_enemy_container.get_children():
+		if child is Control and not child.is_queued_for_deletion():
+			content_size.x = max(content_size.x, child.position.x + child.size.x)
+			content_size.y = max(content_size.y, child.position.y + ENEMY_SLOT_HEIGHT)
+	var positional_scale: float = 1.0
+	if content_size.y > 0:
+		positional_scale = min(1.0, size.y / content_size.y, size.x / content_size.x)
+	_apply_fit_scale(positional_enemy_container, positional_scale)
+
+func _apply_fit_scale(container: Control, fit_scale: float) -> void:
+	container.scale = Vector2(fit_scale, fit_scale)
+	container.size = size / fit_scale # lay out in unscaled units across the whole rect
+	container.position = Vector2.ZERO
+
 func clear_enemies():
 	for child in automatic_enemy_container.get_children():
 		child.queue_free()
@@ -89,6 +129,7 @@ func clear_enemies():
 
 func _on_enemy_spawn_requested(enemy_object_id: String, slot_id: int):
 	spawn_enemy_at_slot(enemy_object_id, slot_id)
+	_fit_enemies()
 
 func _on_run_ended():
 	clear_enemies()

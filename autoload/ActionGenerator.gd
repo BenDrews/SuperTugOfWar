@@ -71,11 +71,12 @@ func generate_start_of_turn_energy_actions() -> void:
 
 
 ## Used in Combat at the end of the player's turn. In order:
-## 1) Tug of war: player and enemy unit strength are compared and the weaker side takes the difference as damage.
+## 1) Tug of war, one lane at a time from the top: player and enemy unit strength in the lane are
+##    compared and the weaker side takes the difference as damage.
 ## 2) Every Unit on the battlefield loses stamina, and any that reach 0 are discarded (their card goes to the discard pile).
-## Added to the ActionHandler stack so both can be intercepted (eg "units don't tire this turn").
+## Added to the ActionHandler stack so all of it can be intercepted (eg "units don't tire this turn").
 func generate_end_of_turn_unit_actions() -> void:
-	# only pause for the visual if there's actually something on the field
+	# only pause for the visuals if there's actually something on the field
 	var has_units: bool = Global.get_tree().get_node_count_in_group(Unit.UNITS_GROUP) > 0
 	# NOTE: actions added together go on the stack in reverse order; the last entry is performed first
 	var action_data: Array[Dictionary] = [
@@ -85,12 +86,15 @@ func generate_end_of_turn_unit_actions() -> void:
 			"time_delay": 0.3 if has_units else 0.0,
 			}
 		},
-		{
-		Scripts.ACTION_RESOLVE_TUG_OF_WAR: {
-			"time_delay": 0.4 if has_units else 0.0,
-			}
-		},
 		]
+	for lane_index: int in range(Battlefield.LANE_COUNT - 1, -1, -1): # bottom lane first in the list = resolved last
+		var lane_has_units: bool = len(Battlefield.get_units(Unit.UNIT_OWNER_AUTOMATIC, lane_index)) > 0
+		action_data.append({
+			Scripts.ACTION_RESOLVE_TUG_OF_WAR: {
+				"lane_index": lane_index,
+				"time_delay": 0.5 if lane_has_units else 0.0,
+				}
+			})
 	var generated_actions: Array[BaseAction] = ActionGenerator.create_actions(Global.get_player(), null, [], action_data, null)
 	ActionHandler.add_actions(generated_actions)
 
