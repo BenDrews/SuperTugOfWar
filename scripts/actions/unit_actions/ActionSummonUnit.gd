@@ -6,7 +6,9 @@
 ## - unit_name: String. Optional display name, defaults to the card's name.
 ## - unit_owner: int (Unit.UNIT_OWNERS). Which side the unit pulls for. Defaults to automatic:
 ##   ENEMY if the action's parent is an Enemy (eg an enemy intent), otherwise PLAYER.
-## - lane_index: int. Lane to place the unit in. -1 (default) picks a random lane.
+## - lane_index: int. Lane to place the unit in. -1 (default) means no lane chosen yet: a player's
+##   unit hands off to ActionPlaceUnit so the player picks one, an enemy's unit goes in a random lane.
+## - lane_random: bool. Force a random lane even for player units. Default false.
 ## - lane_position: int. Index within the owner's side of the lane, 0 = front. -1 (default) = back of the line.
 ## Both stats can be intercepted (eg an artifact giving +1 strength to every unit summoned).
 ## NOTE: The Unit card itself is sent to HandManager.UNIT_FIELD_PILE by its card_play_destination, and
@@ -14,6 +16,15 @@
 extends BaseAction
 
 func perform_action() -> void:
+	# a player unit with no lane yet (eg a card saved before lanes existed, or one written with a bare
+	# summon) gets the lane pick from ActionPlaceUnit, which then runs this action again with a lane
+	if _needs_player_lane_pick():
+		var place_values: Dictionary = values.duplicate()
+		place_values.erase("lane_index")
+		var place_actions: Array[BaseAction] = ActionGenerator.create_actions(parent_combatant, card_play_request, targets, [{Scripts.ACTION_PLACE_UNIT: place_values}], self)
+		ActionHandler.add_actions(place_actions)
+		return
+	
 	# units aren't combatants, so intercept with no targets (parent/player interceptors still apply)
 	var action_interceptor_processors: Array[ActionInterceptorProcessor] = _intercept_action([])
 
@@ -45,6 +56,18 @@ func perform_action() -> void:
 			continue
 
 		Signals.unit_spawn_requested.emit(card_data, unit_name, max(unit_strength, 0), unit_stamina, unit_owner, lane_index, lane_position)
+
+## True when this would place a player-owned unit without a lane having been picked.
+func _needs_player_lane_pick() -> bool:
+	if get_action_value("lane_random", false):
+		return false
+	var lane_index: int = get_action_value("lane_index", -1)
+	if lane_index >= 0 and lane_index < Battlefield.LANE_COUNT:
+		return false
+	var unit_owner: int = get_action_value("unit_owner", Unit.UNIT_OWNER_AUTOMATIC)
+	if unit_owner == Unit.UNIT_OWNER_AUTOMATIC:
+		unit_owner = Unit.UNIT_OWNERS.ENEMY if parent_combatant is Enemy else Unit.UNIT_OWNERS.PLAYER
+	return unit_owner == Unit.UNIT_OWNERS.PLAYER
 
 func _to_string() -> String:
 	return "Summon Unit Action: STR {0} / STA {1}".format([

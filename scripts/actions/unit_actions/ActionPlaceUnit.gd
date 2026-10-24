@@ -11,11 +11,13 @@ class_name ActionPlaceUnit
 
 func perform_async_action() -> void:
 	if len(picked_lanes) > 0:
-		var summon_values: Dictionary = {
-			"lane_index": picked_lanes[0],
-			"lane_position": picked_lane_position,
-			"time_delay": 0.2,
-		}
+		# pass along anything set on this action (eg unit stats for non-card summons), plus the pick
+		var summon_values: Dictionary = values.duplicate()
+		for pick_key: String in ["lane_pick_position", "lane_pick_text", "lane_pick_mode", "lane_pick_filter", "lane_pick_count"]:
+			summon_values.erase(pick_key)
+		summon_values["lane_index"] = picked_lanes[0]
+		summon_values["lane_position"] = picked_lane_position
+		summon_values["time_delay"] = 0.2
 		var action_data: Array[Dictionary] = [{Scripts.ACTION_SUMMON_UNIT: summon_values}]
 		var generated_actions: Array[BaseAction] = ActionGenerator.create_actions(parent_combatant, card_play_request, targets, action_data, self)
 		ActionHandler.add_actions(generated_actions)
