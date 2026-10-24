@@ -80,6 +80,7 @@ const ACTION_SUMMON_ENEMIES: String = "res://scripts/actions/combatant_actions/e
 # unit actions
 const ACTION_SUMMON_UNIT: String = "res://scripts/actions/unit_actions/ActionSummonUnit.gd"
 const ACTION_DECAY_UNIT_STAMINA: String = "res://scripts/actions/unit_actions/ActionDecayUnitStamina.gd"
+const ACTION_RESOLVE_TUG_OF_WAR: String = "res://scripts/actions/unit_actions/ActionResolveTugOfWar.gd"
 
 # reward actions
 const ACTION_GRANT_REWARDS = "res://scripts/actions/rewards/ActionGrantRewards.gd"

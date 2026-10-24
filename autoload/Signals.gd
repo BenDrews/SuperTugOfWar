@@ -126,10 +126,11 @@ signal enemy_hovered(enemy: Enemy)
 signal enemy_spawn_requested(enemy_object_id: String, slot_id: int)	# requests spawning an enemy in a slot
 
 # units
-signal unit_spawn_requested(card_data: CardData, unit_name: String, unit_strength: int, unit_stamina: int)	# requests a Unit be placed on the battlefield. See ActionSummonUnit
+signal unit_spawn_requested(card_data: CardData, unit_name: String, unit_strength: int, unit_stamina: int, unit_owner: int)	# requests a Unit be placed on the battlefield. unit_owner is a Unit.UNIT_OWNERS. See ActionSummonUnit
 signal unit_spawned(unit: Unit)
 signal unit_stamina_changed(unit: Unit)
 signal unit_discarded(unit: Unit)	# unit left the battlefield; its card (if any) has been sent to the discard pile
+signal tug_of_war_resolved(player_strength: int, enemy_strength: int)	# end of turn strength comparison happened. See ActionResolveTugOfWar
 
 # artifacts
 signal artifact_proc(artifact_data: ArtifactData)	# an artifact's effect has been triggered

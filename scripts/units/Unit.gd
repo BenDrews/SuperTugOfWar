@@ -8,12 +8,20 @@ class_name Unit
 ## All live (not yet discarded) units are in this group.
 const UNITS_GROUP: String = "units"
 
+## Which side of the tug of war a unit pulls for.
+enum UNIT_OWNERS {PLAYER, ENEMY}
+## Pass as unit_owner to infer the owner from who summoned the unit. See ActionSummonUnit.
+const UNIT_OWNER_AUTOMATIC: int = -1
+## Panel color for enemy units (player units use their card's color).
+const ENEMY_UNIT_COLOR: Color = Color(0.6, 0.25, 0.65)
+
 const UNIT_SIZE: Vector2 = Vector2(100, 96)
 const FADE_TIME: float = 0.25
 
 ## The card that summoned this unit. Can be null for units created by non-card effects.
 var card_data: CardData = null
 var unit_name: String = ""
+var unit_owner: int = UNIT_OWNERS.PLAYER
 var unit_strength: int = 0
 var unit_stamina: int = 0
 ## Stamina the unit was summoned with, for display.
@@ -25,9 +33,10 @@ var _name_label: Label = null
 var _strength_label: Label = null
 var _stamina_label: Label = null
 
-func init(_card_data: CardData, _unit_name: String, _unit_strength: int, _unit_stamina: int) -> void:
+func init(_card_data: CardData, _unit_name: String, _unit_strength: int, _unit_stamina: int, _unit_owner: int = UNIT_OWNERS.PLAYER) -> void:
 	card_data = _card_data
 	unit_name = _unit_name
+	unit_owner = _unit_owner
 	unit_strength = _unit_strength
 	unit_stamina = _unit_stamina
 	unit_stamina_max = _unit_stamina
@@ -48,6 +57,12 @@ func change_stamina(delta: int) -> void:
 	unit_stamina = max(unit_stamina + delta, 0)
 	update_unit_display()
 	Signals.unit_stamina_changed.emit(self)
+
+func is_player_unit() -> bool:
+	return unit_owner == UNIT_OWNERS.PLAYER
+
+func is_enemy_unit() -> bool:
+	return unit_owner == UNIT_OWNERS.ENEMY
 
 ## Changes strength by a delta, clamped at 0. Hook for future effects (buffs, fatigue, etc).
 func change_strength(delta: int) -> void:
@@ -91,14 +106,16 @@ func update_unit_display() -> void:
 	_stamina_label.text = "STA  %d / %d" % [unit_stamina, unit_stamina_max]
 	# warn when this is the unit's last turn
 	_stamina_label.modulate = Color.ORANGE if unit_stamina <= 1 else Color.WHITE
-	tooltip_text = "%s\nStrength: %d\nStamina: %d (leaves the field when it hits 0)" % [unit_name, unit_strength, unit_stamina]
+	tooltip_text = "%s (%s)\nStrength: %d\nStamina: %d (leaves the field when it hits 0)" % [unit_name, "Enemy" if is_enemy_unit() else "Yours", unit_strength, unit_stamina]
 
 func _build_visuals() -> void:
 	custom_minimum_size = UNIT_SIZE
 	mouse_filter = Control.MOUSE_FILTER_PASS # allow tooltips without blocking clicks
 
 	var unit_color: Color = Color(0.35, 0.35, 0.4)
-	if card_data != null:
+	if is_enemy_unit():
+		unit_color = ENEMY_UNIT_COLOR
+	elif card_data != null:
 		var color_data: ColorData = Global.get_color_data(card_data.card_color_id)
 		if color_data != null:
 			unit_color = color_data.color

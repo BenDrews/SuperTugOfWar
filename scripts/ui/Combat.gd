@@ -32,7 +32,7 @@ var end_turn_object: CombatEndTurn = null
 
 ## Holds the Units on the battlefield. Created in code so Root.tscn doesn't need editing.
 var unit_container: UnitContainer = null
-const UNIT_CONTAINER_RECT: Rect2 = Rect2(16, 128, 536, 200) # free space above/left of the player
+const UNIT_CONTAINER_RECT: Rect2 = Rect2(16, 120, 1168, 100) # band between the artifacts and the combatants. Player units left, enemy units right
 
 func _ready():
 	_create_unit_container()

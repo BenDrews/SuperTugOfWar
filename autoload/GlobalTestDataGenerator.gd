@@ -13,6 +13,7 @@ func generate_test_data() -> void:
 	
 	add_test_enemies()
 	add_test_events()
+	UnitEnemyFactory.add_test_unit_enemies() # Super Tug of War enemies that summon units; must be after events
 	add_test_dialogue()
 	add_test_acts()
 	

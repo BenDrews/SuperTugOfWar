@@ -70,18 +70,27 @@ func generate_start_of_turn_energy_actions() -> void:
 	add_energy_action.perform_action()
 
 
-## Used in Combat at the end of the player's turn. Every Unit on the battlefield loses stamina,
-## and any that reach 0 are discarded (their card goes to the discard pile).
-## Added to the ActionHandler stack so it can be intercepted (eg "units don't tire this turn").
+## Used in Combat at the end of the player's turn. In order:
+## 1) Tug of war: player and enemy unit strength are compared and the weaker side takes the difference as damage.
+## 2) Every Unit on the battlefield loses stamina, and any that reach 0 are discarded (their card goes to the discard pile).
+## Added to the ActionHandler stack so both can be intercepted (eg "units don't tire this turn").
 func generate_end_of_turn_unit_actions() -> void:
 	# only pause for the visual if there's actually something on the field
 	var has_units: bool = Global.get_tree().get_node_count_in_group(Unit.UNITS_GROUP) > 0
-	var action_data: Array[Dictionary] = [{
+	# NOTE: actions added together go on the stack in reverse order; the last entry is performed first
+	var action_data: Array[Dictionary] = [
+		{
 		Scripts.ACTION_DECAY_UNIT_STAMINA: {
 			"stamina_decay": 1,
 			"time_delay": 0.3 if has_units else 0.0,
-		}
-		}]
+			}
+		},
+		{
+		Scripts.ACTION_RESOLVE_TUG_OF_WAR: {
+			"time_delay": 0.4 if has_units else 0.0,
+			}
+		},
+		]
 	var generated_actions: Array[BaseAction] = ActionGenerator.create_actions(Global.get_player(), null, [], action_data, null)
 	ActionHandler.add_actions(generated_actions)
 
