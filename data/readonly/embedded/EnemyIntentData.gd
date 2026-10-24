@@ -101,8 +101,9 @@ func infer_intent_display_types() -> void:
 		for action_script_path: String in action:
 			var action_data: Dictionary = action[action_script_path]
 			# summons
-			if action_script_path == Scripts.ACTION_SUMMON_ENEMIES:
-				enemy_intent_display_types.push_front(INTENT_DISPLAY_TYPES.SUMMONING)
+			if action_script_path in [Scripts.ACTION_SUMMON_ENEMIES, Scripts.ACTION_SUMMON_UNIT, Scripts.ACTION_PLACE_UNIT]:
+				if not enemy_intent_display_types.has(INTENT_DISPLAY_TYPES.SUMMONING):
+					enemy_intent_display_types.push_front(INTENT_DISPLAY_TYPES.SUMMONING)
 			
 			# statuses
 			if action_script_path == Scripts.ACTION_APPLY_STATUS:

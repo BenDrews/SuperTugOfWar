@@ -13,6 +13,7 @@ func generate_test_data() -> void:
 	
 	add_test_enemies()
 	add_test_events()
+	UnitEnemyFactory.add_test_unit_enemies() # Super Tug of War enemies that summon units; must be after events
 	add_test_dialogue()
 	add_test_acts()
 	
@@ -1022,7 +1023,7 @@ func add_test_events() -> void:
 		{"enemy_act_1_boss_1": 1},
 		]
 	event_act_1_boss_1.event_enemy_placement_is_automatic = false
-	event_act_1_boss_1.event_enemy_placement_positions = [[0,0], [180,0], [360,0]]
+	event_act_1_boss_1.event_enemy_placement_positions = [[0,0], [0,250], [0,500]] # stacked in the enemy column (EnemyContainer scales to fit)
 	event_act_1_boss_1.event_death_message_bbcode = "Bosses are tough"
 	
 	Global.register_rod(event_act_1_boss_1)

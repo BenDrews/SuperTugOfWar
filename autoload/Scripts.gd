@@ -80,6 +80,12 @@ const ACTION_SUMMON_ENEMIES: String = "res://scripts/actions/combatant_actions/e
 # unit actions
 const ACTION_SUMMON_UNIT: String = "res://scripts/actions/unit_actions/ActionSummonUnit.gd"
 const ACTION_DECAY_UNIT_STAMINA: String = "res://scripts/actions/unit_actions/ActionDecayUnitStamina.gd"
+const ACTION_RESOLVE_TUG_OF_WAR: String = "res://scripts/actions/unit_actions/ActionResolveTugOfWar.gd"
+const ACTION_PLACE_UNIT: String = "res://scripts/actions/unit_actions/ActionPlaceUnit.gd"
+# 	lane actions; pick lanes, then act on the units in them
+const ACTION_PICK_LANES: String = "res://scripts/actions/unit_actions/lane_actions/ActionPickLanes.gd"
+const ACTION_CHANGE_LANE_UNIT_STAMINA: String = "res://scripts/actions/unit_actions/lane_actions/ActionChangeLaneUnitStamina.gd"
+const ACTION_CHANGE_LANE_UNIT_STRENGTH: String = "res://scripts/actions/unit_actions/lane_actions/ActionChangeLaneUnitStrength.gd"
 
 # reward actions
 const ACTION_GRANT_REWARDS = "res://scripts/actions/rewards/ActionGrantRewards.gd"
@@ -166,6 +172,7 @@ const VALIDATOR_CARD_POSITION_IN_HAND: String = "res://scripts/validators/hand/V
 const VALIDATOR_CARD_TYPE_IN_HAND: String = "res://scripts/validators/hand/ValidatorCardTypeInHand.gd"
 
 # combat validators
+const VALIDATOR_LANE_PICKABLE: String = "res://scripts/validators/ValidatorLanePickable.gd"
 const VALIDATOR_COMBAT_STATS: String = "res://scripts/validators/ValidatorCombatStats.gd"
 const VALIDATOR_RUN_STATS: String = "res://scripts/validators/ValidatorRunStats.gd"
 const VALIDATOR_IN_COMBAT: String = "res://scripts/validators/ValidatorInCombat.gd"
