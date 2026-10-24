@@ -105,7 +105,7 @@ func _ready() -> void:
 	Signals.run_ended.connect(_on_run_ended)
 	Signals.player_killed.connect(_on_player_killed)
 	
-	# pile for unit cards currently on the battlefield. UnitContainer maps its UI element for card trails.
+	# pile for unit cards currently on the battlefield. Battlefield maps its UI element for card trails.
 	add_custom_pile(UNIT_FIELD_PILE)
 
 #region Pile Management

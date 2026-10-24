@@ -30,12 +30,13 @@ extends Control
 @onready var end_turn_button: Button = $EndTurnButton
 var end_turn_object: CombatEndTurn = null
 
-## Holds the Units on the battlefield. Created in code so Root.tscn doesn't need editing.
-var unit_container: UnitContainer = null
-const UNIT_CONTAINER_RECT: Rect2 = Rect2(16, 120, 1168, 100) # band between the artifacts and the combatants. Player units left, enemy units right
+## The three tug of war lanes, between the player (left) and the enemies (right).
+## Created in code; the player and enemy positions it sits between are set in Root.tscn.
+var battlefield: Battlefield = null
+const BATTLEFIELD_RECT: Rect2 = Rect2(208, 116, 768, 360)
 
 func _ready():
-	_create_unit_container()
+	_create_battlefield()
 	
 	Signals.player_money_changed.connect(_on_player_money_changed)
 	Signals.player_health_changed.connect(_on_player_health_changed)
@@ -85,14 +86,15 @@ func _ready():
 	HandManager.card_destination_to_ui_elements[HandManager.DISCARD_PILE] = discard_pile_button
 	HandManager.card_destination_to_ui_elements[HandManager.EXHAUST_PILE] = exhaust_pile_button
 
-func _create_unit_container() -> void:
-	unit_container = UnitContainer.new()
-	unit_container.name = "UnitContainer"
-	add_child(unit_container)
+func _create_battlefield() -> void:
+	battlefield = Battlefield.new()
+	battlefield.name = "Battlefield"
+	battlefield.visible = false
+	add_child(battlefield)
 	# draw above the combatants but below the hand, card picking and overlays
-	move_child(unit_container, enemy_container.get_index() + 1)
-	unit_container.position = UNIT_CONTAINER_RECT.position
-	unit_container.size = UNIT_CONTAINER_RECT.size
+	move_child(battlefield, enemy_container.get_index() + 1)
+	battlefield.position = BATTLEFIELD_RECT.position
+	battlefield.size = BATTLEFIELD_RECT.size
 
 func _on_map_location_selected(location_data: LocationData):
 	# determine what to do when the player visits a new location
@@ -154,6 +156,7 @@ func set_combat_display_visibility(display_visibility: bool) -> void:
 	discard_pile_button.visible = display_visibility
 	exhaust_pile_button.visible = display_visibility
 	end_turn_button.visible = display_visibility
+	battlefield.visible = display_visibility
 
 func _on_card_played(_card_play_request: CardPlayRequest):
 	update_combat_display()

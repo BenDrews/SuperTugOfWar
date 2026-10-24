@@ -11,13 +11,13 @@ func perform_action() -> void:
 	for action_interceptor_processor: ActionInterceptorProcessor in action_interceptor_processors:
 		var stamina_decay: int = action_interceptor_processor.get_shadowed_action_values("stamina_decay", 1)
 
-		for unit: Unit in UnitContainer.get_units():
+		for unit: Unit in Battlefield.get_units():
 			unit.change_stamina(-stamina_decay)
 			if unit.unit_stamina <= 0:
 				unit.discard_unit()
 
 	# safety net: any unit card stuck in the field pile without a unit goes to the discard pile
-	UnitContainer.release_orphaned_field_cards()
+	Battlefield.release_orphaned_field_cards()
 
 func _to_string() -> String:
 	return "Decay Unit Stamina Action: " + str(get_action_value("stamina_decay", 1))

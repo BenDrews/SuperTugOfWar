@@ -1805,31 +1805,31 @@ script = ExtResource("5_a7j3r")
 [node name="Player" parent="RunScreen/Combat" unique_id=524412048 instance=ExtResource("5_7crh0")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 200.0
-offset_top = 336.0
-offset_right = 400.0
-offset_bottom = 480.0
+offset_left = 40.0
+offset_top = 236.0
+offset_right = 240.0
+offset_bottom = 380.0
 
 [node name="EnemyContainer" type="Control" parent="RunScreen/Combat" unique_id=754159237]
 anchors_preset = 0
-offset_left = 568.0
-offset_top = 256.0
-offset_right = 1176.0
-offset_bottom = 448.0
+offset_left = 984.0
+offset_top = 96.0
+offset_right = 1184.0
+offset_bottom = 496.0
 mouse_filter = 2
 script = ExtResource("4_kvn7e")
 metadata/_edit_group_ = true
 
-[node name="AutomaticEnemyContainer" type="HBoxContainer" parent="RunScreen/Combat/EnemyContainer" unique_id=797003300]
+[node name="AutomaticEnemyContainer" type="VBoxContainer" parent="RunScreen/Combat/EnemyContainer" unique_id=797003300]
 layout_mode = 0
-offset_right = 608.0
-offset_bottom = 192.0
+offset_right = 200.0
+offset_bottom = 400.0
 mouse_filter = 2
 
 [node name="PositionalEnemyContainer" type="Control" parent="RunScreen/Combat/EnemyContainer" unique_id=801103158]
 anchors_preset = 0
-offset_right = 608.0
-offset_bottom = 192.0
+offset_right = 200.0
+offset_bottom = 400.0
 mouse_filter = 2
 
 [node name="Consumables" type="Control" parent="RunScreen/Combat" unique_id=322094683]
@@ -2142,8 +2142,8 @@ visible = false
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 192.0
-offset_bottom = 240.0
+offset_top = 476.0
+offset_bottom = 516.0
 grow_horizontal = 2
 theme_override_font_sizes/font_size = 34
 text = "Select a target"
