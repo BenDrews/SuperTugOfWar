@@ -70,20 +70,26 @@ func generate_start_of_turn_energy_actions() -> void:
 	add_energy_action.perform_action()
 
 
-## Used in Combat at the end of the player's turn. In order:
-## 1) Tug of war, one lane at a time from the top: player and enemy unit strength in the lane are
-##    compared and the weaker side takes the difference as damage.
-## 2) Every Unit on the battlefield loses stamina, and any that reach 0 are discarded (their card goes to the discard pile).
+## Used in Combat at the end of each side's turn. damaged_owner (a Unit.UNIT_OWNERS value) is the side
+## whose turn is ending. In order:
+## 1) Tug of war, one lane at a time from the top: damaged_owner takes damage from every lane where the
+##    other side has more strength.
+## 2) The OTHER side's units lose stamina (they just dealt that damage), and any at 0 are discarded.
+## So a unit pulls once in its owner's favour and defends once per point of stamina:
+## - end of player turn: player is pulled, then enemy units tire
+## - end of enemy turn (after its intents): enemy is pulled, then player units tire
 ## Added to the ActionHandler stack so all of it can be intercepted (eg "units don't tire this turn").
-func generate_end_of_turn_unit_actions() -> void:
+func generate_end_of_turn_unit_actions(damaged_owner: int = Unit.UNIT_OWNERS.PLAYER) -> void:
+	var decaying_owner: int = Unit.UNIT_OWNERS.ENEMY if damaged_owner == Unit.UNIT_OWNERS.PLAYER else Unit.UNIT_OWNERS.PLAYER
 	# only pause for the visuals if there's actually something on the field
-	var has_units: bool = Global.get_tree().get_node_count_in_group(Unit.UNITS_GROUP) > 0
+	var has_decaying_units: bool = len(Battlefield.get_units(decaying_owner)) > 0
 	# NOTE: actions added together go on the stack in reverse order; the last entry is performed first
 	var action_data: Array[Dictionary] = [
 		{
 		Scripts.ACTION_DECAY_UNIT_STAMINA: {
 			"stamina_decay": 1,
-			"time_delay": 0.3 if has_units else 0.0,
+			"unit_owner_filter": decaying_owner,
+			"time_delay": 0.3 if has_decaying_units else 0.0,
 			}
 		},
 		]
@@ -92,6 +98,7 @@ func generate_end_of_turn_unit_actions() -> void:
 		action_data.append({
 			Scripts.ACTION_RESOLVE_TUG_OF_WAR: {
 				"lane_index": lane_index,
+				"damaged_owner": damaged_owner,
 				"time_delay": 0.5 if lane_has_units else 0.0,
 				}
 			})
