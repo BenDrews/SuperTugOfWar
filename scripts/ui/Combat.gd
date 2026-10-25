@@ -312,6 +312,15 @@ func perform_enemy_turn():
 	if ActionHandler.actions_being_performed:
 		await ActionHandler.actions_ended
 	
+	# tug of war, now that the enemy's intents (and any units they placed) are done: the enemy is
+	# pulled in lanes where the player is stronger, then player units tire
+	if _end_combat_check():
+		return
+	ActionGenerator.generate_end_of_turn_unit_actions(Unit.UNIT_OWNERS.ENEMY)
+	if ActionHandler.actions_being_performed:
+		await ActionHandler.actions_ended
+	if _end_combat_check():
+		return
 	
 	# Perform end of turn status logic for all enemies
 	for enemy: Enemy in enemies:
@@ -490,8 +499,8 @@ func _on_player_turn_ended():
 	if _end_combat_check():
 		return
 	
-	# units on the battlefield tire: lose stamina, and are discarded at 0
-	ActionGenerator.generate_end_of_turn_unit_actions()
+	# tug of war: the player is pulled in lanes where the enemy is stronger, then enemy units tire
+	ActionGenerator.generate_end_of_turn_unit_actions(Unit.UNIT_OWNERS.PLAYER)
 	if ActionHandler.actions_being_performed:
 		await ActionHandler.actions_ended
 	if _end_combat_check():

@@ -1,11 +1,15 @@
 ## The tug of war for one lane. Compares the total strength of the player's units against the enemy's
-## units in that lane, and the weaker side takes damage equal to the difference. Ties do nothing.
-## Generated once per lane at the end of the player's turn by
-## ActionGenerator.generate_end_of_turn_unit_actions(), before unit stamina decays, so a unit always
-## pulls at least once. Lanes resolve top to bottom, each with its own damage.
+## units in that lane; if the side given by damaged_owner is weaker, it takes damage equal to the
+## difference. Ties do nothing.
+## Each side is only pulled at the end of its own turn (see ActionGenerator.generate_end_of_turn_unit_actions()):
+## - end of the player's turn: the player takes damage from lanes where the enemy is stronger
+## - end of the enemy's turn, after its intents: the enemy takes damage from lanes where the player is stronger
+## Lanes resolve top to bottom, each with its own damage.
 ## The damage is an ActionDirectDamage, so block absorbs it.
 ## Values:
 ## - lane_index: int. The lane to resolve. Default 0.
+## - damaged_owner: int (Unit.UNIT_OWNERS). The side that can take damage this resolution.
+##   -1 lets whichever side is weaker take damage. Default -1.
 ## - player_strength_bonus / enemy_strength_bonus: int. Added to each side's total. Default 0.
 ##   Intercept these for effects like "your side pulls +3 this turn".
 ## - tug_damage_multiplier: int. Multiplies the difference. Default 1.
@@ -34,6 +38,12 @@ func perform_action() -> void:
 
 		if damage <= 0:
 			continue # tie, nobody budges
+		
+		# only the side whose turn is ending can be pulled
+		var damaged_owner: int = action_interceptor_processor.get_shadowed_action_values("damaged_owner", Unit.UNIT_OWNER_AUTOMATIC)
+		var weaker_owner: int = Unit.UNIT_OWNERS.PLAYER if player_strength < enemy_strength else Unit.UNIT_OWNERS.ENEMY
+		if damaged_owner != Unit.UNIT_OWNER_AUTOMATIC and damaged_owner != weaker_owner:
+			continue
 
 		var player: Player = Global.get_player()
 		var alive_enemies: Array[Enemy] = Global.get_alive_enemies()
