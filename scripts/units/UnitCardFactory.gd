@@ -79,8 +79,44 @@ static func add_test_unit_cards() -> void:
 		for card_object_id: String in [
 			"card_unit_footman", "card_unit_footman", "card_unit_brute", "card_unit_anchor", "card_unit_vanguard",
 			"card_lane_fatigue", "card_lane_rally",
+			"card_power_supply_line", "card_power_war_banner",
 			]:
 			character_red.character_starting_card_object_ids.append(card_object_id)
+
+## Creates (but does not register) a lane power: a POWER card that asks for a lane when played and
+## attaches a lasting lane effect (BaseLaneEffect) to it for the rest of combat.
+## Powers that don't need a lane keep working as before: they apply a status to the player and
+## affect everything.
+## description can use [lane_effect_amount].
+static func create_lane_power_card(object_id: String, card_name: String, description: String,
+lane_effect_script: String, lane_effect_amount: int = 1, energy_cost: int = 1,
+unit_owner_filter: int = Unit.UNIT_OWNERS.PLAYER, card_color_id: String = "color_red",
+card_rarity: int = CardData.CARD_RARITIES.UNCOMMON) -> CardData:
+	var card_data: CardData = CardData.new(object_id)
+	card_data.card_name = card_name
+	card_data.card_type = CardData.CARD_TYPES.POWER
+	card_data.card_rarity = card_rarity
+	card_data.card_color_id = card_color_id
+	var color_name: String = card_color_id.trim_prefix("color_")
+	card_data.card_texture_path = "external/sprites/cards/{0}/card_{0}.png".format([color_name])
+	card_data.card_energy_cost = energy_cost
+	card_data.card_requires_target = false
+	card_data.card_play_destination = HandManager.BANISH_PILE # powers banish
+	card_data.card_values = {"lane_effect_amount": lane_effect_amount}
+	card_data.card_upgrade_value_improvements = {"lane_effect_amount": 1}
+	card_data.card_description = description
+	card_data.card_play_actions = [{
+		Scripts.ACTION_PICK_LANES: {
+			"lane_pick_text": "Choose a lane for " + card_name,
+			"action_data": [{
+				Scripts.ACTION_APPLY_LANE_EFFECT: {
+					"lane_effect_script": lane_effect_script,
+					"unit_owner_filter": unit_owner_filter,
+				}
+			}],
+		}
+	}]
+	return card_data
 
 ## Test cards that target a lane rather than an enemy, built on ActionPickLanes.
 static func add_test_lane_cards() -> void:
@@ -127,3 +163,14 @@ static func add_test_lane_cards() -> void:
 		}
 	}]
 	Global.register_rod(card_lane_rally)
+	
+	# lane powers: last the whole combat in the chosen lane
+	var card_power_supply_line: CardData = create_lane_power_card("card_power_supply_line", "Supply Line",
+		"Choose a lane. Your units placed there start with +[lane_effect_amount] stamina",
+		Scripts.LANE_EFFECT_UNIT_STAMINA_BONUS, 1, 1)
+	Global.register_rod(card_power_supply_line)
+	
+	var card_power_war_banner: CardData = create_lane_power_card("card_power_war_banner", "War Banner",
+		"Choose a lane. Your units placed there start with +[lane_effect_amount] strength",
+		Scripts.LANE_EFFECT_UNIT_STRENGTH_BONUS, 1, 1)
+	Global.register_rod(card_power_war_banner)

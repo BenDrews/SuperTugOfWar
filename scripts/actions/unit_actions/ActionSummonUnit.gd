@@ -55,7 +55,15 @@ func perform_action() -> void:
 			DebugLogger.log_error("ActionSummonUnit: Unit \"{0}\" has no stamina and was not summoned".format([unit_name]))
 			continue
 
-		Signals.unit_spawn_requested.emit(card_data, unit_name, max(unit_strength, 0), unit_stamina, unit_owner, lane_index, lane_position)
+		# lasting lane effects (eg a lane power giving +1 stamina) adjust the unit before it's placed
+		var summon: Dictionary = {"unit_name": unit_name, "unit_strength": max(unit_strength, 0), "unit_stamina": unit_stamina, "unit_owner": unit_owner}
+		var lane: UnitLane = Battlefield.get_lane(lane_index)
+		if lane != null:
+			lane.apply_lane_effects_to_summon(summon)
+		if summon.unit_stamina <= 0:
+			continue
+		
+		Signals.unit_spawn_requested.emit(card_data, summon.unit_name, summon.unit_strength, summon.unit_stamina, unit_owner, lane_index, lane_position)
 
 ## True when this would place a player-owned unit without a lane having been picked.
 func _needs_player_lane_pick() -> bool:

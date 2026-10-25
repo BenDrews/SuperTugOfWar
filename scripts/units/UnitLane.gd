@@ -2,6 +2,7 @@
 ##   [player units ... front] [tally] [front ... enemy units]
 ## Each side keeps its units in order, index 0 being the front (closest to the rope in the middle).
 ## Units are positioned manually so a crowded side squeezes together instead of overflowing.
+## Lasting lane effects (BaseLaneEffect, usually from lane powers) show as badges in the top-left corner.
 ## The right end of the lane holds the enemy intents for this lane (LaneIntentDisplay), between the
 ## lane and the enemy. Hovering a summon intent previews the units at the back of the enemy line.
 ## Also handles being picked by the player (see Battlefield and ActionBasePickLanes), optionally
@@ -38,6 +39,8 @@ var player_units: Array[Unit] = []
 var enemy_units: Array[Unit] = []
 ## Faded stand-ins shown while an enemy summon intent is hovered. Laid out after enemy_units.
 var preview_units: Array[Unit] = []
+## Lasting effects on this lane for the rest of combat. See add_lane_effect().
+var lane_effects: Array[BaseLaneEffect] = []
 
 var is_pickable: bool = false
 var picks_position: bool = false
@@ -51,6 +54,7 @@ var _enemy_side: Control = null
 var _tally_label: Label = null
 var _insert_marker: ColorRect = null
 var _intent_box: VBoxContainer = null
+var _effect_badges: HBoxContainer = null
 
 func init(_lane_index: int) -> void:
 	lane_index = _lane_index
@@ -82,6 +86,13 @@ func init(_lane_index: int) -> void:
 	_insert_marker.visible = false
 	_player_side.add_child(_insert_marker)
 
+	_effect_badges = HBoxContainer.new()
+	_effect_badges.name = "LaneEffects"
+	_effect_badges.position = Vector2(SIDE_PADDING, 3)
+	_effect_badges.add_theme_constant_override("separation", 4)
+	_effect_badges.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_effect_badges)
+	
 	_intent_box = VBoxContainer.new()
 	_intent_box.name = "Intents"
 	_intent_box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -235,6 +246,52 @@ func _layout_units(unit_owner: int, animate: bool = true) -> void:
 			create_tween().tween_property(unit, "position", target, LAYOUT_TWEEN_TIME)
 		else:
 			unit.position = target
+#endregion
+
+#region Lane Effects
+## Adds a lasting effect to this lane, stacking onto a matching one if present.
+func add_lane_effect(lane_effect_script_path: String, amount: int, effect_values: Dictionary) -> BaseLaneEffect:
+	for lane_effect: BaseLaneEffect in lane_effects:
+		if lane_effect.stacks_with(lane_effect_script_path, effect_values):
+			lane_effect.amount += amount
+			_update_effect_badges()
+			Signals.lane_effects_changed.emit(lane_index)
+			return lane_effect
+	var lane_effect: BaseLaneEffect = load(lane_effect_script_path).new()
+	lane_effect.init(lane_effect_script_path, amount, effect_values, lane_index)
+	lane_effects.append(lane_effect)
+	_update_effect_badges()
+	Signals.lane_effects_changed.emit(lane_index)
+	return lane_effect
+
+func clear_lane_effects() -> void:
+	lane_effects.clear()
+	_update_effect_badges()
+
+## Lets this lane's effects adjust a unit about to be placed here. See BaseLaneEffect.modify_unit_summon().
+func apply_lane_effects_to_summon(summon: Dictionary) -> void:
+	for lane_effect: BaseLaneEffect in lane_effects:
+		lane_effect.modify_unit_summon(summon)
+
+func _update_effect_badges() -> void:
+	for child: Node in _effect_badges.get_children():
+		child.queue_free()
+	for lane_effect: BaseLaneEffect in lane_effects:
+		var badge: PanelContainer = PanelContainer.new()
+		var style: StyleBoxFlat = StyleBoxFlat.new()
+		style.bg_color = Color(0.2, 0.45, 0.25, 0.85)
+		style.set_corner_radius_all(4)
+		style.content_margin_left = 5
+		style.content_margin_right = 5
+		badge.add_theme_stylebox_override("panel", style)
+		badge.mouse_filter = Control.MOUSE_FILTER_PASS
+		badge.tooltip_text = lane_effect.get_description()
+		var label: Label = Label.new()
+		label.text = lane_effect.get_badge_text()
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.add_theme_font_size_override("font_size", 11)
+		badge.add_child(label)
+		_effect_badges.add_child(badge)
 #endregion
 
 #region Enemy Intents

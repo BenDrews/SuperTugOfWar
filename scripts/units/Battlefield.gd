@@ -92,6 +92,11 @@ unit_owner: int = Unit.UNIT_OWNERS.PLAYER, lane_index: int = 0, lane_position: i
 func clear_units() -> void:
 	for lane: UnitLane in lanes:
 		lane.clear_units()
+
+## Removes all lane effects (lane powers only last for the combat they were played in).
+func clear_lane_effects() -> void:
+	for lane: UnitLane in lanes:
+		lane.clear_lane_effects()
 #endregion
 
 #region Enemy Intents
@@ -223,14 +228,17 @@ func _on_tug_of_war_resolved(lane_index: int, _player_strength: int, _enemy_stre
 func _on_combat_started(_event_id: String) -> void:
 	_end_lane_pick()
 	clear_units()
+	clear_lane_effects()
 
 func _on_combat_ended() -> void:
 	_end_lane_pick()
 	clear_units()
+	clear_lane_effects()
 	_clear_lane_intents()
 
 func _on_run_ended() -> void:
 	_end_lane_pick()
 	clear_units()
+	clear_lane_effects()
 	_clear_lane_intents()
 #endregion

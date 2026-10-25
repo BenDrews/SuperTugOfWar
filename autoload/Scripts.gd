@@ -86,6 +86,10 @@ const ACTION_PLACE_UNIT: String = "res://scripts/actions/unit_actions/ActionPlac
 const ACTION_PICK_LANES: String = "res://scripts/actions/unit_actions/lane_actions/ActionPickLanes.gd"
 const ACTION_CHANGE_LANE_UNIT_STAMINA: String = "res://scripts/actions/unit_actions/lane_actions/ActionChangeLaneUnitStamina.gd"
 const ACTION_CHANGE_LANE_UNIT_STRENGTH: String = "res://scripts/actions/unit_actions/lane_actions/ActionChangeLaneUnitStrength.gd"
+const ACTION_APPLY_LANE_EFFECT: String = "res://scripts/actions/unit_actions/lane_actions/ActionApplyLaneEffect.gd"
+# 	lane effects; lasting per-lane effects applied by lane powers (see BaseLaneEffect)
+const LANE_EFFECT_UNIT_STAMINA_BONUS: String = "res://scripts/units/lane_effects/LaneEffectUnitStaminaBonus.gd"
+const LANE_EFFECT_UNIT_STRENGTH_BONUS: String = "res://scripts/units/lane_effects/LaneEffectUnitStrengthBonus.gd"
 
 # reward actions
 const ACTION_GRANT_REWARDS = "res://scripts/actions/rewards/ActionGrantRewards.gd"

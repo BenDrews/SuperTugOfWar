@@ -136,6 +136,7 @@ signal tug_of_war_resolved(lane_index: int, player_strength: int, enemy_strength
 
 # lanes
 signal lane_pick_requested(lane_pick_action: ActionBasePickLanes)	# an action wants the player to pick lane(s). Handled by Battlefield
+signal lane_effects_changed(lane_index: int)	# a lasting lane effect (eg from a lane power) was added or stacked
 signal lane_pick_confirmed	# the lane pick is finished; picked_lanes is populated
 
 # artifacts
