@@ -155,7 +155,7 @@ static func add_test_lane_and_unit_statuses() -> void:
 		StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_DRAW_PLAYER_START_TURN, # player units
 		StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_ENEMY_TURN, # enemy units
 		]
-	# status_target_units is filled in automatically with the unit holding the status
+	# the action acts on the unit holding the status (passed in automatically as invoking_status_units)
 	var second_wind_actions: Array[Dictionary] = [{Scripts.ACTION_CHANGE_LANE_UNIT_STAMINA: {"stamina_change": 1, "time_delay": 0.2}}]
 	status_effect_second_wind.status_effect_player_process_actions = second_wind_actions
 	status_effect_second_wind.status_effect_enemy_process_actions = second_wind_actions

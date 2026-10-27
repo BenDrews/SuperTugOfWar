@@ -116,8 +116,8 @@ func _generate_status_effect_card_play_request() -> CardPlayRequest:
 		"invoking_status_effect_charges": status_charges,
 		"invoking_status_effect_secondary_charges": status_secondary_charges
 	}
-	# lane statuses pass their lane as picked_lanes, unit statuses pass status_target_units, so lane
-	# actions (BaseLaneAction) act on what the status is attached to
+	# lane and unit statuses pass their lane / unit (as namespaced invoking_status_* values) so lane
+	# actions (BaseLaneAction) act on what the status is attached to by default
 	if status_holder != null and get_status_target_type() != StatusEffectHolder.STATUS_TARGET_TYPES.COMBATANT:
 		card_play_request.card_values.merge(status_holder.get_status_target_values())
 	return card_play_request

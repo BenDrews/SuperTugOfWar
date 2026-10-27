@@ -126,6 +126,7 @@ func _get_action_interceptors_modifying_pair(action: BaseAction, parent_combatan
 			var action_interceptor_data: ActionInterceptorData = Global.get_action_interceptor_data(action_interceptor_object_id)
 			var action_script_path: String = action.get_script().resource_path
 			if action_interceptor_data.action_intercepted_action_paths.has(action_script_path):
+				forced_interceptor_ids.erase(action_interceptor_object_id) # don't apply a forced copy on top
 				# the same interceptor can come from several holders; keep one entry per holder
 				var context_entry: ActionInterceptorData = action_interceptor_data.duplicate()
 				context_interceptor_data_to_source[context_entry] = context_holder

@@ -60,17 +60,23 @@ func get_parent_combatant() -> BaseCombatant:
 	var enemies: Array[Enemy] = Global.get_alive_enemies()
 	return enemies[0] if len(enemies) > 0 else null
 
-## Values injected into status actions so they know what they're attached to. Lane holders pass
-## picked_lanes (so lane actions act on that lane) and unit holders pass status_target_units.
+## The lane this holder's statuses are in: the lane itself, or the unit's current lane.
+func get_lane_index() -> int:
+	if status_target_type == STATUS_TARGET_TYPES.UNIT and is_instance_valid(status_target):
+		return status_target.get_lane_index()
+	return lane_index
+
+## Values injected into status actions (as card values on their fake card play request) so they know
+## what they're attached to. Namespaced so they don't change how unrelated actions behave; lane
+## actions (BaseLaneAction) fall back to them when they have no lanes/units of their own.
 func get_status_target_values() -> Dictionary:
-	var target_values: Dictionary = {"status_target_type": status_target_type, "status_target_side": get_side()}
+	var target_values: Dictionary = {"invoking_status_target_type": status_target_type, "invoking_status_side": get_side()}
 	match status_target_type:
 		STATUS_TARGET_TYPES.LANE:
-			target_values["picked_lanes"] = [lane_index]
-			target_values["unit_owner_filter"] = get_side()
+			target_values["invoking_status_lanes"] = [get_lane_index()]
 		STATUS_TARGET_TYPES.UNIT:
-			target_values["picked_lanes"] = [lane_index]
-			target_values["status_target_units"] = [status_target]
+			target_values["invoking_status_lanes"] = [get_lane_index()]
+			target_values["invoking_status_units"] = [status_target]
 	return target_values
 #endregion
 
@@ -78,6 +84,8 @@ func get_status_target_values() -> Dictionary:
 ## Adds charges and secondary charges to ALL instances of a given status.
 ## If no status exists, create one and apply charges. Removes statuses that become zero'd out.
 func add_status_effect_charges(status_effect_object_id: String, charge_amount: int, secondary_charge_amount: int = 0) -> void:
+	if charge_amount == 0 and secondary_charge_amount == 0:
+		return # charge applications of zero have no effect
 	var status_effect_data: StatusEffectData = Global.get_status_effect_data(status_effect_object_id)
 	if status_effect_data == null:
 		DebugLogger.log_error("Status effect {0} does not exist".format([status_effect_object_id]))
@@ -102,13 +110,15 @@ func add_status_effect_charges(status_effect_object_id: String, charge_amount: i
 		if status_effect_script.status_charges == 0:
 			_remove_status_effect(status_effect)
 		else:
-			status_effect.update_status_charge_display()
+			_update_display(status_effect)
 
 	_on_statuses_changed()
 
 ## Adds an entirely new status effect with given charges. Mainly useful for statuses that allow
 ## multiples; fails if the status doesn't allow multiples and one already exists.
 func add_new_status_effect(status_effect_object_id: String, charge_amount: int, secondary_charge_amount: int = 0, custom_values: Dictionary = {}) -> void:
+	if charge_amount == 0:
+		return
 	var status_effect_data: StatusEffectData = Global.get_status_effect_data(status_effect_object_id)
 	if status_effect_data == null:
 		DebugLogger.log_error("Status effect {0} does not exist".format([status_effect_object_id]))
@@ -122,7 +132,7 @@ func add_new_status_effect(status_effect_object_id: String, charge_amount: int, 
 		if status_effect_script.status_charges == 0:
 			_remove_status_effect(status_effect)
 		else:
-			status_effect.update_status_charge_display()
+			_update_display(status_effect)
 	_on_statuses_changed()
 
 func clear_all_status_effects() -> void:
@@ -230,7 +240,7 @@ func _create_status_effect(status_effect_object_id: String) -> StatusEffect:
 
 	status_effect.status_effect_script = status_effect_script
 	if status_container != null:
-		status_container.add_child(status_effect)
+		status_container.add_child(status_effect) # a holder without a container keeps statuses invisible
 	status_effect_script.init(status_effect_data, get_parent_combatant(), self)
 
 	# register interceptors when creating the first instance of an effect
@@ -239,7 +249,15 @@ func _create_status_effect(status_effect_object_id: String) -> StatusEffect:
 			ActionHandler.register_action_interceptor(get_interceptor_key(), interceptor_id)
 	return status_effect
 
+## Updates a status icon, if it's shown anywhere.
+func _update_display(status_effect: StatusEffect) -> void:
+	if status_effect.is_inside_tree():
+		status_effect.update_status_charge_display()
+
 func _on_statuses_changed() -> void:
+	# combatants show some statuses as reserved chunks of their health bar
+	if status_target_type == STATUS_TARGET_TYPES.COMBATANT and is_instance_valid(status_target) and status_target.is_inside_tree():
+		status_target.update_health_bar(false)
 	Signals.enemy_intent_changed.emit() # update enemy intent in case statuses affect them
 	if status_target_type != STATUS_TARGET_TYPES.COMBATANT:
 		Signals.status_target_statuses_changed.emit(self)

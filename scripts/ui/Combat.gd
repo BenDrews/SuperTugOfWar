@@ -264,6 +264,7 @@ func perform_enemy_turn():
 		return
 	
 	### Perform intent for all enemies
+	var field_pre_intent_statuses_done: bool = false
 	for e in enemies:
 		# get enemy standard attack data
 		var enemy: Enemy = e	# typecast iterator
@@ -273,8 +274,9 @@ func perform_enemy_turn():
 			enemy.perform_status_effect_process_actions(StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_ENEMY_INTENT)
 			if ActionHandler.actions_being_performed:
 				await ActionHandler.actions_ended
-			# enemy-side lane and unit statuses with this per-intent time run once, with the first enemy
-			if enemy == enemies[0]:
+			# enemy-side lane and unit statuses with this per-intent time run once, with the first living enemy
+			if not field_pre_intent_statuses_done:
+				field_pre_intent_statuses_done = true
 				await battlefield.process_side_status_effects(Unit.UNIT_OWNERS.ENEMY, StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_ENEMY_INTENT, false, true)
 		
 		### perform intents: block resets once, then each lane's intent runs, top to bottom

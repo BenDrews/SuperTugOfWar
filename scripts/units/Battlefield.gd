@@ -163,8 +163,18 @@ static func get_side_status_holders(side: int, include_combatants: bool = true, 
 ## Combat calls this with the player's process times for PLAYER and the enemy times for ENEMY.
 func process_side_status_effects(side: int, status_effect_process_time: int, include_combatants: bool = true, include_field: bool = true) -> void:
 	for status_holder: StatusEffectHolder in get_side_status_holders(side, include_combatants, include_field):
-		if status_holder.status_target_type == StatusEffectHolder.STATUS_TARGET_TYPES.UNIT and status_holder.status_target.is_discarded:
-			continue # left the field earlier in this pass
+		var player: Player = Global.get_player()
+		if not Global.are_remaining_enemies() or player == null or not player.is_alive():
+			return # combat ended part way through the pass
+		if not is_instance_valid(status_holder.status_target):
+			continue
+		match status_holder.status_target_type:
+			StatusEffectHolder.STATUS_TARGET_TYPES.COMBATANT:
+				if not status_holder.status_target.is_alive():
+					continue # died earlier in this pass
+			StatusEffectHolder.STATUS_TARGET_TYPES.UNIT:
+				if status_holder.status_target.is_discarded:
+					continue # left the field earlier in this pass
 		status_holder.perform_status_effect_process_actions(status_effect_process_time)
 		if ActionHandler.actions_being_performed:
 			await ActionHandler.actions_ended

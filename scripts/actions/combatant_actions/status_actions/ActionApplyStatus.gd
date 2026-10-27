@@ -8,10 +8,19 @@
 ##     status_lane_side (Unit.UNIT_OWNERS) picks the side; defaults to the side of whoever applies it.
 ##   - UNIT: every unit in the picked lanes passing unit_owner_filter (default: the applier's side),
 ##     or the units in status_target_units.
+## NOTE: status_target_type is only read from this action's own values, never inherited from a card
+## or invoking status, so a status's "apply Weak to enemies" action can't land on a lane by accident.
+## NOTE: Lane/unit holders are intercepted one at a time, each with only its own statuses' interceptors.
 extends BaseAction
 
+## The holder currently being processed, so each gets its own interception. See get_status_context_holders().
+var _current_context_holder: StatusEffectHolder = null
+
+func _get_status_target_type() -> int:
+	return values.get("status_target_type", StatusEffectHolder.STATUS_TARGET_TYPES.COMBATANT)
+
 func perform_action():
-	var status_target_type: int = get_action_value("status_target_type", StatusEffectHolder.STATUS_TARGET_TYPES.COMBATANT)
+	var status_target_type: int = _get_status_target_type()
 	if status_target_type != StatusEffectHolder.STATUS_TARGET_TYPES.COMBATANT:
 		_apply_to_status_holders(get_target_status_holders())
 		return
@@ -27,7 +36,7 @@ func perform_action():
 ## The lane-side or unit holders this action applies to (empty for combatant targets).
 func get_target_status_holders() -> Array[StatusEffectHolder]:
 	var holders: Array[StatusEffectHolder] = []
-	var status_target_type: int = get_action_value("status_target_type", StatusEffectHolder.STATUS_TARGET_TYPES.COMBATANT)
+	var status_target_type: int = _get_status_target_type()
 	var applier_side: int = Unit.UNIT_OWNERS.ENEMY if parent_combatant is Enemy else Unit.UNIT_OWNERS.PLAYER
 	match status_target_type:
 		StatusEffectHolder.STATUS_TARGET_TYPES.LANE:
@@ -43,9 +52,11 @@ func get_target_status_holders() -> Array[StatusEffectHolder]:
 	return holders
 
 func _apply_to_status_holders(holders: Array[StatusEffectHolder]) -> void:
-	for action_interceptor_processor in _intercept_action([]):
-		for status_holder: StatusEffectHolder in holders:
+	for status_holder: StatusEffectHolder in holders:
+		_current_context_holder = status_holder
+		for action_interceptor_processor in _intercept_action([]):
 			_apply_to_holder(status_holder, action_interceptor_processor)
+	_current_context_holder = null
 
 func _apply_to_holder(status_holder: StatusEffectHolder, action_interceptor_processor: ActionInterceptorProcessor) -> void:
 	var status_charge_amount: int = action_interceptor_processor.get_shadowed_action_values("status_charge_amount", 1)
@@ -58,11 +69,11 @@ func _apply_to_holder(status_holder: StatusEffectHolder, action_interceptor_proc
 	else:
 		status_holder.add_status_effect_charges(status_effect_object_id, status_charge_amount, status_secondary_charge_amount)
 
-## Interceptors on the lane/unit holders receiving the status apply too.
+## Interceptors on the lane/unit holder receiving the status apply too (one holder at a time).
 func get_status_context_holders() -> Array[Object]:
-	var holders: Array[Object] = []
-	holders.assign(get_target_status_holders())
-	return holders
+	if _current_context_holder != null:
+		return [_current_context_holder]
+	return []
 
 func is_action_short_circuited() -> bool:
 	return get_action_value("action_short_circuits", true)

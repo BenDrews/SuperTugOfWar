@@ -10,7 +10,10 @@
 ##   unit hands off to ActionPlaceUnit so the player picks one, an enemy's unit goes in a random lane.
 ## - lane_random: bool. Force a random lane even for player units. Default false.
 ## - lane_position: int. Index within the owner's side of the lane, 0 = front. -1 (default) = back of the line.
-## Both stats can be intercepted (eg an artifact giving +1 strength to every unit summoned).
+## Both stats can be intercepted (eg an artifact giving +1 strength to every unit summoned), including
+## by statuses on the destination lane's side for the new unit (see get_status_context_holders()).
+## NOTE: lane_index and unit_owner are settled before interception (they decide which lane statuses
+## apply), so interceptors can't redirect a unit to another lane or side.
 ## NOTE: The Unit card itself is sent to HandManager.UNIT_FIELD_PILE by its card_play_destination, and
 ## moved to the discard pile when the Unit is discarded.
 extends BaseAction
