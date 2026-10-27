@@ -123,7 +123,9 @@ func clear_all_actions() -> void:
 
 ### Action Interception
 
-func register_action_interceptor(base_combatant: BaseCombatant, action_interceptor_object_id: String) -> void:
+## base_combatant is whatever the interceptor is registered on: a BaseCombatant, or a StatusEffectHolder
+## for lane and unit statuses (see BaseAction.get_status_context_holders()).
+func register_action_interceptor(base_combatant: Object, action_interceptor_object_id: String) -> void:
 	# registers a given action interceptor for an object
 	# note that generally speaking any interceptor should only ever have one source of registration. Delegate to status effects with charges if you want multiple things to create the same effect
 	var interceptor_ids: Array = _registered_action_interceptor_object_ids.get(base_combatant, [])
@@ -131,7 +133,7 @@ func register_action_interceptor(base_combatant: BaseCombatant, action_intercept
 		interceptor_ids.append(action_interceptor_object_id)
 	_registered_action_interceptor_object_ids[base_combatant] = interceptor_ids
 	
-func unregister_action_interceptor(base_combatant: BaseCombatant, action_interceptor_object_id: String) -> void:
+func unregister_action_interceptor(base_combatant: Object, action_interceptor_object_id: String) -> void:
 	var interceptor_ids: Array = _registered_action_interceptor_object_ids.get(base_combatant, [])
 	interceptor_ids.erase(action_interceptor_object_id)
 	_registered_action_interceptor_object_ids[base_combatant] = interceptor_ids

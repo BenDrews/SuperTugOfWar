@@ -93,10 +93,10 @@ func clear_units() -> void:
 	for lane: UnitLane in lanes:
 		lane.clear_units()
 
-## Removes all lane effects (lane powers only last for the combat they were played in).
-func clear_lane_effects() -> void:
+## Removes all lane statuses (lane powers only last for the combat they were played in).
+func clear_lane_status_effects() -> void:
 	for lane: UnitLane in lanes:
-		lane.clear_lane_effects()
+		lane.clear_status_effects()
 #endregion
 
 #region Enemy Intents
@@ -132,6 +132,42 @@ func _on_enemy_lane_intent_performed(enemy: Enemy, lane_index: int) -> void:
 	for display: LaneIntentDisplay in lane.get_lane_intents():
 		if display.enemy == enemy:
 			display.flash()
+#endregion
+
+#region Status Resolution
+## Status holders of one side in resolution order:
+## 1) the side's combatants (the player, or each living enemy)
+## 2) the side's half of each lane, top to bottom
+## 3) the side's units: lanes top to bottom, and within a lane front (inside, nearest the rope) to back (outside)
+static func get_side_status_holders(side: int, include_combatants: bool = true, include_field: bool = true) -> Array[StatusEffectHolder]:
+	var holders: Array[StatusEffectHolder] = []
+	if include_combatants:
+		if side == Unit.UNIT_OWNERS.PLAYER:
+			var player: Player = Global.get_player()
+			if player != null:
+				holders.append(player.get_status_holder())
+		else:
+			for enemy: Enemy in Global.get_alive_enemies():
+				holders.append(enemy.get_status_holder())
+	if include_field:
+		for lane: UnitLane in get_lanes():
+			holders.append(lane.get_status_holder(side))
+		for lane: UnitLane in get_lanes():
+			for unit: Unit in lane.get_side_units(side): # front to back
+				if unit.get_status_holder() != null:
+					holders.append(unit.get_status_holder())
+	return holders
+
+## Processes one side's status effects for a process time, in the order of get_side_status_holders(),
+## waiting for each holder's actions to finish before the next so the order is exact.
+## Combat calls this with the player's process times for PLAYER and the enemy times for ENEMY.
+func process_side_status_effects(side: int, status_effect_process_time: int, include_combatants: bool = true, include_field: bool = true) -> void:
+	for status_holder: StatusEffectHolder in get_side_status_holders(side, include_combatants, include_field):
+		if status_holder.status_target_type == StatusEffectHolder.STATUS_TARGET_TYPES.UNIT and status_holder.status_target.is_discarded:
+			continue # left the field earlier in this pass
+		status_holder.perform_status_effect_process_actions(status_effect_process_time)
+		if ActionHandler.actions_being_performed:
+			await ActionHandler.actions_ended
 #endregion
 
 #region Static Helpers
@@ -228,17 +264,17 @@ func _on_tug_of_war_resolved(lane_index: int, _player_strength: int, _enemy_stre
 func _on_combat_started(_event_id: String) -> void:
 	_end_lane_pick()
 	clear_units()
-	clear_lane_effects()
+	clear_lane_status_effects()
 
 func _on_combat_ended() -> void:
 	_end_lane_pick()
 	clear_units()
-	clear_lane_effects()
+	clear_lane_status_effects()
 	_clear_lane_intents()
 
 func _on_run_ended() -> void:
 	_end_lane_pick()
 	clear_units()
-	clear_lane_effects()
+	clear_lane_status_effects()
 	_clear_lane_intents()
 #endregion

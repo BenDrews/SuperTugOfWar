@@ -37,6 +37,11 @@ var is_preview: bool = false
 
 const PREVIEW_ALPHA: float = 0.45
 
+## This unit's own status effects. See StatusEffectHolder. Created in init().
+var status_holder: StatusEffectHolder = null
+var _status_container: HBoxContainer = null
+const STATUS_ICON_SCALE: float = 0.6
+
 var _name_label: Label = null
 var _strength_label: Label = null
 var _stamina_label: Label = null
@@ -51,6 +56,7 @@ func init(_card_data: CardData, _unit_name: String, _unit_strength: int, _unit_s
 
 	add_to_group(UNITS_GROUP)
 	_build_visuals()
+	status_holder = StatusEffectHolder.new(StatusEffectHolder.STATUS_TARGET_TYPES.UNIT, self, unit_owner, _status_container)
 	update_unit_display()
 
 	# fade in
@@ -68,6 +74,9 @@ func get_lane_index() -> int:
 	if lane == null:
 		return -1
 	return lane.lane_index
+
+func get_status_holder() -> StatusEffectHolder:
+	return status_holder
 
 ## Position within its side of the lane. 0 is the front (closest to the rope in the middle).
 func get_lane_position() -> int:
@@ -114,6 +123,8 @@ func discard_unit() -> void:
 		return
 	is_discarded = true
 	remove_from_group(UNITS_GROUP)
+	if status_holder != null:
+		status_holder.clear_all_status_effects() # unregisters any interceptors from its statuses
 	if lane != null:
 		lane.remove_unit(self) # the rest of the line closes up while this one fades in place
 
@@ -133,6 +144,8 @@ func discard_unit() -> void:
 func clear_unit() -> void:
 	is_discarded = true
 	remove_from_group(UNITS_GROUP)
+	if status_holder != null:
+		status_holder.clear_all_status_effects()
 	lane = null
 	queue_free()
 
@@ -175,6 +188,19 @@ func _build_visuals() -> void:
 	vbox.add_theme_constant_override("separation", 0)
 	add_child(vbox)
 
+	# status icons sit over the unit's top edge. A plain Control overlay is used because the
+	# PanelContainer would otherwise lay the icons out like its content.
+	var overlay: Control = Control.new()
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(overlay)
+	_status_container = HBoxContainer.new()
+	_status_container.name = "Statuses"
+	_status_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_status_container.add_theme_constant_override("separation", 0)
+	_status_container.scale = Vector2(STATUS_ICON_SCALE, STATUS_ICON_SCALE)
+	_status_container.position = Vector2(-2, -12)
+	overlay.add_child(_status_container)
+	
 	_name_label = _make_label(12)
 	_name_label.clip_text = true
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS

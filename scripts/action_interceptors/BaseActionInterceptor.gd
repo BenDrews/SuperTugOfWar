@@ -1,8 +1,12 @@
 ## Provides modification and acceptance/rejection of actions as they are being currently processed by ActionHandler
 ## Handled by a parent ActionInterceptorProcessor which stores the final values of the chain
-## Purely functional. Do not attach properties to these.
+## Purely functional. Do not attach properties to these (other than source, set by the processor).
 extends Resource
 class_name BaseActionInterceptor
+
+## What the interceptor was registered on: the parent/target combatant, or for lane and unit statuses,
+## their StatusEffectHolder. Lets an interceptor read charges from the status that registered it.
+var source: Object = null
 
 enum ACTION_ACCEPTENCES {	# acceptance codes. These determine if subsequent actions should be processed, or to not process the action at all 
 	CONTINUE,	# keep processing further interceptors on this action

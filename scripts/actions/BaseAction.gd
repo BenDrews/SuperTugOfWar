@@ -72,6 +72,12 @@ func perform_async_action() -> void:
 	# if the action requires an async request, perform it here then emit the action_async_finished signal
 	action_async_finished.emit()
 
+## Optional override. Lane and unit status holders (StatusEffectHolder) whose status interceptors
+## should also apply to this action, on top of the parent's and target's. Eg placing a unit consults
+## the destination lane's statuses for that unit's side.
+func get_status_context_holders() -> Array[Object]:
+	return []
+
 func is_instant_action() -> bool:
 	# optional override
 	# useful for forcing some actions to process instantly regardless of time_delay

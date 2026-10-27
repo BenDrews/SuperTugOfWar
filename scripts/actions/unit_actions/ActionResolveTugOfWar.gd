@@ -18,6 +18,14 @@
 ## opponents (eg enemy N owns lane N) would slot in here.
 extends BaseAction
 
+## Statuses on both sides of the lane being resolved intercept it (eg to add a strength bonus).
+## Interceptors can tell sides apart with (source as StatusEffectHolder).get_side().
+func get_status_context_holders() -> Array[Object]:
+	var lane: UnitLane = Battlefield.get_lane(get_action_value("lane_index", 0))
+	if lane == null:
+		return []
+	return [lane.player_status_holder, lane.enemy_status_holder]
+
 func perform_action() -> void:
 	var action_interceptor_processors: Array[ActionInterceptorProcessor] = _intercept_action([])
 

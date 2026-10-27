@@ -258,11 +258,8 @@ func perform_enemy_turn():
 		return
 	
 	# Perform start of turn status logic for all enemies
-	for enemy: Enemy in enemies:
-		if enemy.is_alive():
-			enemy.perform_status_effect_process_actions(StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_ENEMY_TURN)
-			if ActionHandler.actions_being_performed:
-				await ActionHandler.actions_ended
+	# enemies, then enemy-side lane statuses, then enemy units (see Battlefield.get_side_status_holders())
+	await battlefield.process_side_status_effects(Unit.UNIT_OWNERS.ENEMY, StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_ENEMY_TURN)
 	if _end_combat_check():
 		return
 	
@@ -276,6 +273,9 @@ func perform_enemy_turn():
 			enemy.perform_status_effect_process_actions(StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_ENEMY_INTENT)
 			if ActionHandler.actions_being_performed:
 				await ActionHandler.actions_ended
+			# enemy-side lane and unit statuses with this per-intent time run once, with the first enemy
+			if enemy == enemies[0]:
+				await battlefield.process_side_status_effects(Unit.UNIT_OWNERS.ENEMY, StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_ENEMY_INTENT, false, true)
 		
 		### perform intents: block resets once, then each lane's intent runs, top to bottom
 		if enemy.is_alive():
@@ -305,6 +305,9 @@ func perform_enemy_turn():
 			enemy.perform_status_effect_process_actions(StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.POST_ENEMY_INTENT)
 			if ActionHandler.actions_being_performed:
 				await ActionHandler.actions_ended
+		# enemy-side lane and unit statuses with this per-intent time run once, with the last enemy
+		if enemy == enemies[-1]:
+			await battlefield.process_side_status_effects(Unit.UNIT_OWNERS.ENEMY, StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.POST_ENEMY_INTENT, false, true)
 		
 		if _end_combat_check():
 			return
@@ -323,11 +326,7 @@ func perform_enemy_turn():
 		return
 	
 	# Perform end of turn status logic for all enemies
-	for enemy: Enemy in enemies:
-		if enemy.is_alive():
-			enemy.perform_status_effect_process_actions(StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.POST_ENEMY_TURN)
-			if ActionHandler.actions_being_performed:
-				await ActionHandler.actions_ended
+	await battlefield.process_side_status_effects(Unit.UNIT_OWNERS.ENEMY, StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.POST_ENEMY_TURN)
 
 	# all enemies dead
 	if _end_combat_check():
@@ -457,9 +456,8 @@ func _on_player_turn_started():
 	# perform pre draw actions
 	player.update_incoming_damage_amount(true)
 	player.generate_reset_block_action()
-	player.perform_status_effect_process_actions(StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_DRAW_PLAYER_START_TURN)
-	if ActionHandler.actions_being_performed:
-		await ActionHandler.actions_ended
+	# player, then player-side lane statuses, then player units (see Battlefield.get_side_status_holders())
+	await battlefield.process_side_status_effects(Unit.UNIT_OWNERS.PLAYER, StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_DRAW_PLAYER_START_TURN)
 	if _end_combat_check():
 		return
 	
@@ -472,7 +470,7 @@ func _on_player_turn_started():
 		return
 	
 	# perform post draw actions
-	player.perform_status_effect_process_actions(StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.POST_DRAW_PLAYER_START_TURN)
+	await battlefield.process_side_status_effects(Unit.UNIT_OWNERS.PLAYER, StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.POST_DRAW_PLAYER_START_TURN)
 	# if player is dead stop
 	if _end_combat_check():
 		return
@@ -486,9 +484,7 @@ func _on_player_turn_ended():
 	HandManager.set_disable_hand(true)
 	
 	# perform all end of turn actions and await
-	player.perform_status_effect_process_actions(StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_DISCARD_PLAYER_END_TURN)
-	if ActionHandler.actions_being_performed:
-		await ActionHandler.actions_ended
+	await battlefield.process_side_status_effects(Unit.UNIT_OWNERS.PLAYER, StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.PRE_DISCARD_PLAYER_END_TURN)
 	if _end_combat_check():
 		return
 	
@@ -507,9 +503,7 @@ func _on_player_turn_ended():
 		return
 	
 	# perform all end of turn actions and await
-	player.perform_status_effect_process_actions(StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.POST_DISCARD_PLAYER_END_TURN)
-	if ActionHandler.actions_being_performed:
-		await ActionHandler.actions_ended
+	await battlefield.process_side_status_effects(Unit.UNIT_OWNERS.PLAYER, StatusEffectData.STATUS_EFFECT_PROCESS_TIMES.POST_DISCARD_PLAYER_END_TURN)
 	if _end_combat_check():
 		return
 

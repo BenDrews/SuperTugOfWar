@@ -15,6 +15,16 @@
 ## moved to the discard pile when the Unit is discarded.
 extends BaseAction
 
+var _resolved_lane_index: int = -1
+var _resolved_unit_owner: int = Unit.UNIT_OWNERS.PLAYER
+
+## The destination lane's statuses for the new unit's side intercept this action.
+func get_status_context_holders() -> Array[Object]:
+	var lane: UnitLane = Battlefield.get_lane(_resolved_lane_index)
+	if lane == null:
+		return []
+	return [lane.get_status_holder(_resolved_unit_owner)]
+
 func perform_action() -> void:
 	# a player unit with no lane yet (eg a card saved before lanes existed, or one written with a bare
 	# summon) gets the lane pick from ActionPlaceUnit, which then runs this action again with a lane
@@ -25,7 +35,17 @@ func perform_action() -> void:
 		ActionHandler.add_actions(place_actions)
 		return
 	
-	# units aren't combatants, so intercept with no targets (parent/player interceptors still apply)
+	# settle the lane and side first: the destination lane's statuses for that side get to intercept
+	# this (eg a lane power giving units placed there +1 stamina). See get_status_context_holders().
+	_resolved_unit_owner = get_action_value("unit_owner", Unit.UNIT_OWNER_AUTOMATIC)
+	if _resolved_unit_owner == Unit.UNIT_OWNER_AUTOMATIC:
+		_resolved_unit_owner = Unit.UNIT_OWNERS.ENEMY if parent_combatant is Enemy else Unit.UNIT_OWNERS.PLAYER
+	_resolved_lane_index = get_action_value("lane_index", -1)
+	if _resolved_lane_index < 0 or _resolved_lane_index >= Battlefield.LANE_COUNT:
+		var rng_name: String = get_action_value("rng_name", "rng_lane_picking")
+		_resolved_lane_index = Global.player_data.get_player_rng(rng_name).randi_range(0, Battlefield.LANE_COUNT - 1)
+	
+	# units aren't combatants, so intercept with no targets (parent/player and lane interceptors still apply)
 	var action_interceptor_processors: Array[ActionInterceptorProcessor] = _intercept_action([])
 
 	var card_data: CardData = get_action_card_data()
@@ -39,15 +59,9 @@ func perform_action() -> void:
 		var unit_strength: int = action_interceptor_processor.get_shadowed_action_values(CardData.UNIT_STRENGTH_KEY, 0)
 		var unit_stamina: int = action_interceptor_processor.get_shadowed_action_values(CardData.UNIT_STAMINA_KEY, 1)
 		var unit_name: String = action_interceptor_processor.get_shadowed_action_values("unit_name", default_name)
-		var unit_owner: int = action_interceptor_processor.get_shadowed_action_values("unit_owner", Unit.UNIT_OWNER_AUTOMATIC)
-		if unit_owner == Unit.UNIT_OWNER_AUTOMATIC:
-			unit_owner = Unit.UNIT_OWNERS.ENEMY if parent_combatant is Enemy else Unit.UNIT_OWNERS.PLAYER
-
+		var unit_owner: int = _resolved_unit_owner
 		var lane_position: int = action_interceptor_processor.get_shadowed_action_values("lane_position", -1)
-		var lane_index: int = action_interceptor_processor.get_shadowed_action_values("lane_index", -1)
-		if lane_index < 0 or lane_index >= Battlefield.LANE_COUNT:
-			var rng_name: String = get_action_value("rng_name", "rng_lane_picking")
-			lane_index = Global.player_data.get_player_rng(rng_name).randi_range(0, Battlefield.LANE_COUNT - 1)
+		var lane_index: int = _resolved_lane_index
 		
 		if unit_stamina <= 0:
 			# a unit with no stamina would be discarded immediately; its card is swept to the discard
@@ -55,15 +69,7 @@ func perform_action() -> void:
 			DebugLogger.log_error("ActionSummonUnit: Unit \"{0}\" has no stamina and was not summoned".format([unit_name]))
 			continue
 
-		# lasting lane effects (eg a lane power giving +1 stamina) adjust the unit before it's placed
-		var summon: Dictionary = {"unit_name": unit_name, "unit_strength": max(unit_strength, 0), "unit_stamina": unit_stamina, "unit_owner": unit_owner}
-		var lane: UnitLane = Battlefield.get_lane(lane_index)
-		if lane != null:
-			lane.apply_lane_effects_to_summon(summon)
-		if summon.unit_stamina <= 0:
-			continue
-		
-		Signals.unit_spawn_requested.emit(card_data, summon.unit_name, summon.unit_strength, summon.unit_stamina, unit_owner, lane_index, lane_position)
+		Signals.unit_spawn_requested.emit(card_data, unit_name, max(unit_strength, 0), unit_stamina, unit_owner, lane_index, lane_position)
 
 ## True when this would place a player-owned unit without a lane having been picked.
 func _needs_player_lane_pick() -> bool:
