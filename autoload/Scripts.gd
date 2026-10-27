@@ -82,6 +82,7 @@ const ACTION_SUMMON_UNIT: String = "res://scripts/actions/unit_actions/ActionSum
 const ACTION_DECAY_UNIT_STAMINA: String = "res://scripts/actions/unit_actions/ActionDecayUnitStamina.gd"
 const ACTION_RESOLVE_TUG_OF_WAR: String = "res://scripts/actions/unit_actions/ActionResolveTugOfWar.gd"
 const ACTION_PLACE_UNIT: String = "res://scripts/actions/unit_actions/ActionPlaceUnit.gd"
+const ACTION_UNIT_PLACEMENT: String = "res://scripts/actions/unit_actions/ActionUnitPlacement.gd" # interceptor hook for where a unit lands
 # 	lane actions; pick lanes, then act on the units in them
 const ACTION_PICK_LANES: String = "res://scripts/actions/unit_actions/lane_actions/ActionPickLanes.gd"
 const ACTION_CHANGE_LANE_UNIT_STAMINA: String = "res://scripts/actions/unit_actions/lane_actions/ActionChangeLaneUnitStamina.gd"
@@ -213,6 +214,8 @@ const INTERCEPTOR_NEGATE_ADD_MONEY: String = "res://scripts/action_interceptors/
 # lane statuses
 const INTERCEPTOR_LANE_UNIT_STAMINA_BONUS: String = "res://scripts/action_interceptors/lanes/InterceptorLaneUnitStaminaBonus.gd"
 const INTERCEPTOR_LANE_UNIT_STRENGTH_BONUS: String = "res://scripts/action_interceptors/lanes/InterceptorLaneUnitStrengthBonus.gd"
+const INTERCEPTOR_LANE_RALLY_POINT: String = "res://scripts/action_interceptors/lanes/InterceptorLaneRallyPoint.gd"
+const INTERCEPTOR_LANE_SPEARHEAD: String = "res://scripts/action_interceptors/lanes/InterceptorLaneSpearhead.gd"
 
 # auto revive
 const INTERCEPTOR_CONSUMABLE_AUTO_REVIVE: String = "res://scripts/action_interceptors/InterceptorConsumableAutoRevive.gd"

@@ -80,6 +80,7 @@ static func add_test_unit_cards() -> void:
 			"card_unit_footman", "card_unit_footman", "card_unit_brute", "card_unit_anchor", "card_unit_vanguard",
 			"card_lane_fatigue", "card_lane_rally",
 			"card_power_supply_line", "card_power_war_banner", "card_lane_second_wind",
+			"card_power_rally_point", "card_power_spearhead",
 			]:
 			character_red.character_starting_card_object_ids.append(card_object_id)
 
@@ -144,6 +145,35 @@ static func add_test_lane_and_unit_statuses() -> void:
 	interceptor_lane_unit_strength.action_intercepted_action_paths = [Scripts.ACTION_SUMMON_UNIT]
 	interceptor_lane_unit_strength.action_interceptor_priority = 1000
 	Global.register_rod(interceptor_lane_unit_strength)
+	
+	# lane placement hooks (ActionUnitPlacement): change where units land
+	# rally point: your units placed in the lanes next to this one come here instead
+	var status_effect_lane_rally_point: StatusEffectData = StatusEffectData.new("status_effect_lane_rally_point")
+	status_effect_lane_rally_point.status_effect_name = "Rally Point: your units placed in neighbouring lanes are placed here instead"
+	status_effect_lane_rally_point.status_effect_texture_path = "external/sprites/status_effects/status_effect_blue.png"
+	status_effect_lane_rally_point.status_effect_charge_upper_bound = 1 # on or off
+	status_effect_lane_rally_point.status_effect_action_process_times = []
+	status_effect_lane_rally_point.status_effect_interceptor_ids = ["interceptor_lane_rally_point"]
+	Global.register_rod(status_effect_lane_rally_point)
+	var interceptor_lane_rally_point: ActionInterceptorData = ActionInterceptorData.new("interceptor_lane_rally_point")
+	interceptor_lane_rally_point.action_interceptor_script_path = Scripts.INTERCEPTOR_LANE_RALLY_POINT
+	interceptor_lane_rally_point.action_intercepted_action_paths = [Scripts.ACTION_UNIT_PLACEMENT]
+	interceptor_lane_rally_point.action_interceptor_priority = 2000 # lane changes before position changes
+	Global.register_rod(interceptor_lane_rally_point)
+	
+	# spearhead: your units placed in this lane go to the front of the line
+	var status_effect_lane_spearhead: StatusEffectData = StatusEffectData.new("status_effect_lane_spearhead")
+	status_effect_lane_spearhead.status_effect_name = "Spearhead: your units placed here go to the front of the line"
+	status_effect_lane_spearhead.status_effect_texture_path = "external/sprites/status_effects/status_effect_purple.png"
+	status_effect_lane_spearhead.status_effect_charge_upper_bound = 1
+	status_effect_lane_spearhead.status_effect_action_process_times = []
+	status_effect_lane_spearhead.status_effect_interceptor_ids = ["interceptor_lane_spearhead"]
+	Global.register_rod(status_effect_lane_spearhead)
+	var interceptor_lane_spearhead: ActionInterceptorData = ActionInterceptorData.new("interceptor_lane_spearhead")
+	interceptor_lane_spearhead.action_interceptor_script_path = Scripts.INTERCEPTOR_LANE_SPEARHEAD
+	interceptor_lane_spearhead.action_intercepted_action_paths = [Scripts.ACTION_UNIT_PLACEMENT]
+	interceptor_lane_spearhead.action_interceptor_priority = 1000
+	Global.register_rod(interceptor_lane_spearhead)
 	
 	# unit: at the start of its side's turn the unit regains 1 stamina; charges count down the turns
 	var status_effect_second_wind: StatusEffectData = StatusEffectData.new("status_effect_second_wind")
@@ -219,6 +249,20 @@ static func add_test_lane_cards() -> void:
 		"Choose a lane. Your units placed there start with +[status_charge_amount] strength",
 		"status_effect_lane_unit_strength", 1, 1)
 	Global.register_rod(card_power_war_banner)
+	
+	# lane powers that change where your units land (ActionUnitPlacement hooks)
+	var card_power_rally_point: CardData = create_lane_power_card("card_power_rally_point", "Rally Point",
+		"Choose a lane. Your units placed in the lanes next to it are placed there instead",
+		"status_effect_lane_rally_point", 1, 1)
+	card_power_rally_point.card_upgrade_value_improvements = {}
+	card_power_rally_point.card_first_upgrade_property_changes = {"card_energy_cost": 0}
+	Global.register_rod(card_power_rally_point)
+	
+	var card_power_spearhead: CardData = create_lane_power_card("card_power_spearhead", "Spearhead",
+		"Choose a lane. Your units placed there go to the front of the line",
+		"status_effect_lane_spearhead", 1, 0)
+	card_power_spearhead.card_upgrade_value_improvements = {}
+	Global.register_rod(card_power_spearhead)
 	
 	# unit status: applied to each of your units in the chosen lane
 	var card_lane_second_wind: CardData = CardData.new("card_lane_second_wind")
