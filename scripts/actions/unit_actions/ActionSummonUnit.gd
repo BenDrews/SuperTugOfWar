@@ -12,13 +12,15 @@
 ## - lane_position: int. Index within the owner's side of the lane, 0 = front. -1 (default) = back of the line.
 ## Both stats can be intercepted (eg an artifact giving +1 strength to every unit summoned), including
 ## by statuses on the destination lane's side for the new unit (see get_status_context_holders()).
-## NOTE: lane_index and unit_owner are settled before interception (they decide which lane statuses
-## apply), so interceptors can't redirect a unit to another lane or side.
+## NOTE: Where the unit goes is decided first by the ActionUnitPlacement hook, which interceptors can use
+## to move it to another lane or spot (or stop it). This action's own interception then only adjusts
+## the unit's stats, using the final lane's statuses. The unit's side can't be changed.
 ## NOTE: The Unit card itself is sent to HandManager.UNIT_FIELD_PILE by its card_play_destination, and
 ## moved to the discard pile when the Unit is discarded.
 extends BaseAction
 
 var _resolved_lane_index: int = -1
+var _resolved_lane_position: int = -1
 var _resolved_unit_owner: int = Unit.UNIT_OWNERS.PLAYER
 
 ## The destination lane's statuses for the new unit's side intercept this action.
@@ -43,10 +45,14 @@ func perform_action() -> void:
 	_resolved_unit_owner = get_action_value("unit_owner", Unit.UNIT_OWNER_AUTOMATIC)
 	if _resolved_unit_owner == Unit.UNIT_OWNER_AUTOMATIC:
 		_resolved_unit_owner = Unit.UNIT_OWNERS.ENEMY if parent_combatant is Enemy else Unit.UNIT_OWNERS.PLAYER
-	_resolved_lane_index = get_action_value("lane_index", -1)
-	if _resolved_lane_index < 0 or _resolved_lane_index >= Battlefield.LANE_COUNT:
+	var requested_lane_index: int = get_action_value("lane_index", -1)
+	if requested_lane_index < 0 or requested_lane_index >= Battlefield.LANE_COUNT:
 		var rng_name: String = get_action_value("rng_name", "rng_lane_picking")
-		_resolved_lane_index = Global.player_data.get_player_rng(rng_name).randi_range(0, Battlefield.LANE_COUNT - 1)
+		requested_lane_index = Global.player_data.get_player_rng(rng_name).randi_range(0, Battlefield.LANE_COUNT - 1)
+	
+	# placement hook: statuses / artifacts may move the unit to another lane or spot, or stop it
+	if not _resolve_placement(requested_lane_index, get_action_value("lane_position", -1)):
+		return
 	
 	# units aren't combatants, so intercept with no targets (parent/player and lane interceptors still apply)
 	var action_interceptor_processors: Array[ActionInterceptorProcessor] = _intercept_action([])
@@ -63,7 +69,7 @@ func perform_action() -> void:
 		var unit_stamina: int = action_interceptor_processor.get_shadowed_action_values(CardData.UNIT_STAMINA_KEY, 1)
 		var unit_name: String = action_interceptor_processor.get_shadowed_action_values("unit_name", default_name)
 		var unit_owner: int = _resolved_unit_owner
-		var lane_position: int = action_interceptor_processor.get_shadowed_action_values("lane_position", -1)
+		var lane_position: int = _resolved_lane_position
 		var lane_index: int = _resolved_lane_index
 		
 		if unit_stamina <= 0:
@@ -73,6 +79,29 @@ func perform_action() -> void:
 			continue
 
 		Signals.unit_spawn_requested.emit(card_data, unit_name, max(unit_strength, 0), unit_stamina, unit_owner, lane_index, lane_position)
+
+## Runs the ActionUnitPlacement interceptor hook and stores the final lane/position.
+## Returns false if an interceptor rejected the placement.
+func _resolve_placement(requested_lane_index: int, requested_lane_position: int) -> bool:
+	var card_data: CardData = get_action_card_data()
+	var placement_values: Dictionary = {
+		"lane_index": requested_lane_index,
+		"lane_position": requested_lane_position,
+		"requested_lane_index": requested_lane_index,
+		"requested_lane_position": requested_lane_position,
+		"unit_owner": _resolved_unit_owner,
+		"unit_name": get_action_value("unit_name", card_data.get_card_name() if card_data != null else "Unit"),
+		CardData.UNIT_STRENGTH_KEY: get_action_value(CardData.UNIT_STRENGTH_KEY, 0),
+		CardData.UNIT_STAMINA_KEY: get_action_value(CardData.UNIT_STAMINA_KEY, 1),
+	}
+	var placement_action: BaseAction = ActionGenerator.create_actions(parent_combatant, card_play_request, [], [{Scripts.ACTION_UNIT_PLACEMENT: placement_values}], self)[0]
+	var placement_processors: Array[ActionInterceptorProcessor] = placement_action._intercept_action([])
+	if len(placement_processors) == 0:
+		return false # placement rejected
+	var placement_processor: ActionInterceptorProcessor = placement_processors[0]
+	_resolved_lane_index = clamp(placement_processor.get_shadowed_action_values("lane_index", requested_lane_index), 0, Battlefield.LANE_COUNT - 1)
+	_resolved_lane_position = placement_processor.get_shadowed_action_values("lane_position", requested_lane_position)
+	return true
 
 ## True when this would place a player-owned unit without a lane having been picked.
 func _needs_player_lane_pick() -> bool:
