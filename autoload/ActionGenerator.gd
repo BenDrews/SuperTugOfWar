@@ -279,14 +279,20 @@ func generate_combatant_death(combatant: BaseCombatant) -> void:
 	generated_action.perform_action()
 
 ## Generates an instant interceptable action to decay a status. Used by BaseCombatant.
-func generate_decay_status_effect(selected_target: BaseCombatant, status_effect_object_id: String, decay_amount: int) -> void:
-	var action_data: Array[Dictionary] = [{
-		Scripts.ACTION_DECAY_STATUS: {
-			"status_effect_object_id": status_effect_object_id,
-			"status_charge_amount": decay_amount
-			}
-		}]
-	var generated_action: BaseAction = ActionGenerator.create_actions(Global.get_player(), null, [selected_target], action_data, null)[0]
+## Decays a status on any status target: a BaseCombatant, or a StatusEffectHolder (combatant, lane side or unit).
+func generate_decay_status_effect(status_target: Object, status_effect_object_id: String, decay_amount: int) -> void:
+	var status_holder: StatusEffectHolder = status_target.get_status_holder() if status_target is BaseCombatant else status_target
+	var decay_values: Dictionary = {
+		"status_effect_object_id": status_effect_object_id,
+		"status_charge_amount": decay_amount
+		}
+	var decay_targets: Array[BaseCombatant] = []
+	if status_holder.status_target_type == StatusEffectHolder.STATUS_TARGET_TYPES.COMBATANT:
+		decay_targets = [status_holder.status_target]
+	else:
+		decay_values["status_holders"] = [status_holder]
+	var action_data: Array[Dictionary] = [{Scripts.ACTION_DECAY_STATUS: decay_values}]
+	var generated_action: BaseAction = ActionGenerator.create_actions(Global.get_player(), null, decay_targets, action_data, null)[0]
 	
 	# immediately process this action without ActionHandler
 	generated_action.perform_action()

@@ -87,6 +87,7 @@ const ACTION_PICK_LANES: String = "res://scripts/actions/unit_actions/lane_actio
 const ACTION_CHANGE_LANE_UNIT_STAMINA: String = "res://scripts/actions/unit_actions/lane_actions/ActionChangeLaneUnitStamina.gd"
 const ACTION_CHANGE_LANE_UNIT_STRENGTH: String = "res://scripts/actions/unit_actions/lane_actions/ActionChangeLaneUnitStrength.gd"
 
+
 # reward actions
 const ACTION_GRANT_REWARDS = "res://scripts/actions/rewards/ActionGrantRewards.gd"
 const ACTION_CLEAR_REWARDS = "res://scripts/actions/rewards/ActionClearRewards.gd"
@@ -209,6 +210,10 @@ const INTERCEPTOR_NEGATE_DAMAGE: String = "res://scripts/action_interceptors/Int
 const INTERCEPTOR_CAP_DAMAGE: String = "res://scripts/action_interceptors/InterceptorCapDamage.gd"
 const INTERCEPTOR_NEGATE_DEBUFF: String = "res://scripts/action_interceptors/InterceptorNegateDebuff.gd"
 const INTERCEPTOR_NEGATE_ADD_MONEY: String = "res://scripts/action_interceptors/InterceptorNegateAddMoney.gd"
+# lane statuses
+const INTERCEPTOR_LANE_UNIT_STAMINA_BONUS: String = "res://scripts/action_interceptors/lanes/InterceptorLaneUnitStaminaBonus.gd"
+const INTERCEPTOR_LANE_UNIT_STRENGTH_BONUS: String = "res://scripts/action_interceptors/lanes/InterceptorLaneUnitStrengthBonus.gd"
+
 # auto revive
 const INTERCEPTOR_CONSUMABLE_AUTO_REVIVE: String = "res://scripts/action_interceptors/InterceptorConsumableAutoRevive.gd"
 # modifiers

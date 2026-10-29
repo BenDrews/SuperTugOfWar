@@ -2,6 +2,8 @@
 ##   [player units ... front] [tally] [front ... enemy units]
 ## Each side keeps its units in order, index 0 being the front (closest to the rope in the middle).
 ## Units are positioned manually so a crowded side squeezes together instead of overflowing.
+## Lane status effects show in the lane's top corners: the player side's on the left, the enemy side's
+## next to the enemy units on the right. See get_status_holder().
 ## The right end of the lane holds the enemy intents for this lane (LaneIntentDisplay), between the
 ## lane and the enemy. Hovering a summon intent previews the units at the back of the enemy line.
 ## Also handles being picked by the player (see Battlefield and ActionBasePickLanes), optionally
@@ -38,6 +40,11 @@ var player_units: Array[Unit] = []
 var enemy_units: Array[Unit] = []
 ## Faded stand-ins shown while an enemy summon intent is hovered. Laid out after enemy_units.
 var preview_units: Array[Unit] = []
+## Status effects on the player's and the enemy's side of this lane. See get_status_holder().
+var player_status_holder: StatusEffectHolder = null
+var enemy_status_holder: StatusEffectHolder = null
+
+const STATUS_ICON_SCALE: float = 0.75
 
 var is_pickable: bool = false
 var picks_position: bool = false
@@ -51,6 +58,8 @@ var _enemy_side: Control = null
 var _tally_label: Label = null
 var _insert_marker: ColorRect = null
 var _intent_box: VBoxContainer = null
+var _player_status_container: HBoxContainer = null
+var _enemy_status_container: HBoxContainer = null
 
 func init(_lane_index: int) -> void:
 	lane_index = _lane_index
@@ -82,6 +91,11 @@ func init(_lane_index: int) -> void:
 	_insert_marker.visible = false
 	_player_side.add_child(_insert_marker)
 
+	_player_status_container = _make_status_container("PlayerStatuses")
+	_enemy_status_container = _make_status_container("EnemyStatuses")
+	player_status_holder = StatusEffectHolder.new(StatusEffectHolder.STATUS_TARGET_TYPES.LANE, self, Unit.UNIT_OWNERS.PLAYER, _player_status_container, lane_index)
+	enemy_status_holder = StatusEffectHolder.new(StatusEffectHolder.STATUS_TARGET_TYPES.LANE, self, Unit.UNIT_OWNERS.ENEMY, _enemy_status_container, lane_index)
+	
 	_intent_box = VBoxContainer.new()
 	_intent_box.name = "Intents"
 	_intent_box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -193,6 +207,8 @@ func _layout_regions() -> void:
 	_background.position = Vector2.ZERO
 	_background.size = Vector2(_get_field_width(), size.y)
 	_intent_box.position = Vector2(_get_field_width() + INTENT_GAP, 0)
+	_player_status_container.position = Vector2(SIDE_PADDING, 2)
+	_enemy_status_container.position = Vector2(SIDE_PADDING + side_width + TALLY_WIDTH, 2)
 	_intent_box.size = Vector2(INTENT_WIDTH, size.y)
 	_player_side.position = Vector2(SIDE_PADDING, 0)
 	_player_side.size = Vector2(side_width, size.y)
@@ -235,6 +251,27 @@ func _layout_units(unit_owner: int, animate: bool = true) -> void:
 			create_tween().tween_property(unit, "position", target, LAYOUT_TWEEN_TIME)
 		else:
 			unit.position = target
+#endregion
+
+#region Status Effects
+## Each side of a lane has its own status effects (see StatusEffectHolder). A status you put on a lane
+## belongs to your side of it: eg "your units placed here start with +1 stamina".
+func get_status_holder(side: int) -> StatusEffectHolder:
+	return enemy_status_holder if side == Unit.UNIT_OWNERS.ENEMY else player_status_holder
+
+## Removes every status from both sides of this lane (lane statuses last until combat ends).
+func clear_status_effects() -> void:
+	player_status_holder.clear_all_status_effects()
+	enemy_status_holder.clear_all_status_effects()
+
+func _make_status_container(container_name: String) -> HBoxContainer:
+	var container: HBoxContainer = HBoxContainer.new()
+	container.name = container_name
+	container.add_theme_constant_override("separation", 2)
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.scale = Vector2(STATUS_ICON_SCALE, STATUS_ICON_SCALE)
+	add_child(container)
+	return container
 #endregion
 
 #region Enemy Intents

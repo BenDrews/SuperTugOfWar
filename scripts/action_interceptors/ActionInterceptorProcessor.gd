@@ -113,6 +113,25 @@ func _get_action_interceptors_modifying_pair(action: BaseAction, parent_combatan
 				interceptor_data_list.append(action_interceptor_data)
 				forced_interceptor_ids.erase(action_interceptor_object_id)
 	
+	### Status Context Interceptors
+	# interceptors from lane / unit statuses the action declares relevant (BaseAction.get_status_context_holders()).
+	# These apply regardless of action_interceptor_modifies_parent.
+	var context_interceptor_data_to_source: Dictionary = {}
+	for context_holder: Object in action.get_status_context_holders():
+		var context_action_interceptor_object_ids: Array[String] = []
+		context_action_interceptor_object_ids.assign(ActionHandler._registered_action_interceptor_object_ids.get(context_holder, []))
+		for action_interceptor_object_id in context_action_interceptor_object_ids:
+			if ignored_interceptor_ids.has(action_interceptor_object_id):
+				continue
+			var action_interceptor_data: ActionInterceptorData = Global.get_action_interceptor_data(action_interceptor_object_id)
+			var action_script_path: String = action.get_script().resource_path
+			if action_interceptor_data.action_intercepted_action_paths.has(action_script_path):
+				forced_interceptor_ids.erase(action_interceptor_object_id) # don't apply a forced copy on top
+				# the same interceptor can come from several holders; keep one entry per holder
+				var context_entry: ActionInterceptorData = action_interceptor_data.duplicate()
+				context_interceptor_data_to_source[context_entry] = context_holder
+				interceptor_data_list.append(context_entry)
+	
 	### Forced Interceptors
 	# apply forced parent interceptors from action data
 	for forced_interceptor_id: String in forced_interceptor_ids:
@@ -132,6 +151,12 @@ func _get_action_interceptors_modifying_pair(action: BaseAction, parent_combatan
 		# create interceptor
 		var action_interceptor_asset = load(action_interceptor_data.action_interceptor_script_path)
 		var action_interceptor: BaseActionInterceptor = action_interceptor_asset.new()
+		if context_interceptor_data_to_source.has(action_interceptor_data):
+			action_interceptor.source = context_interceptor_data_to_source[action_interceptor_data]
+		elif action_interceptor_data.action_interceptor_modifies_parent:
+			action_interceptor.source = parent_combatant
+		else:
+			action_interceptor.source = target_combatant
 		returned_action_interceptors.append(action_interceptor)
 	
 	return returned_action_interceptors
